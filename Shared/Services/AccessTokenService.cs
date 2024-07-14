@@ -269,5 +269,3 @@ public class AccessTokenService : IAccessTokenService
         return DateTime.Now.AddSeconds(3000);
     }
 }
-
-}
