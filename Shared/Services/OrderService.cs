@@ -12,7 +12,6 @@ public class OrderService : IOrderService
 {
     private readonly IAccessTokenService _accessTokenService;
     private readonly IOAuthClientService _oAuthClientService;
-    private readonly IOrderService _orderService;
     private readonly ILogger<OrderService> _logger;
     private readonly IValidatorWrapper<Order> _orderValidator;
     private readonly IValidatorWrapper<UpdateStatus> _updateStatusValidator;
@@ -20,13 +19,11 @@ public class OrderService : IOrderService
 
 
     public OrderService(IAccessTokenService accessTokenService, IOAuthClientService oAuthClientService,
-        IOrderService orderService, ILogger<OrderService> logger,
-        IValidatorWrapper<Order> orderValidator, IValidatorWrapper<UpdateStatus> updateStatusValidator,
-        IOrderRepository orderRepository)
+        ILogger<OrderService> logger, IValidatorWrapper<Order> orderValidator, 
+        IValidatorWrapper<UpdateStatus> updateStatusValidator, IOrderRepository orderRepository)
     {
         _accessTokenService = accessTokenService;
         _oAuthClientService = oAuthClientService;
-        _orderService = orderService;
         _logger = logger;
         _orderValidator = orderValidator;
         _updateStatusValidator = updateStatusValidator;
@@ -59,8 +56,6 @@ public class OrderService : IOrderService
 
     private async Task ProcessSingleOrderAsync(Order order)
     {
-        var existingOrder = await _orderService.GetOrderByOrderCodeAsync(order.Code);
-        
         try
         {
             await AddOrderAsync(order);
