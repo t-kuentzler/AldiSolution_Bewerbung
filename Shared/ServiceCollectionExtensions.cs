@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
             
             //Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
+            services.AddScoped<IOrderRepository, OrderRepository>();
 
             
             // OAuth Client Service Factory
