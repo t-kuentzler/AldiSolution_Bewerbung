@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IAccessTokenService, AccessTokenService>();
             services.AddScoped<IOAuthClientService, OAuthClientService>();
+            services.AddScoped<IOrderProcessingService, OrderProcessingService>();
             
             //Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
