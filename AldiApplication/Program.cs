@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Shared;
+using Shared.Contracts;
 using Shared.Logger;
 
 namespace AldiApplication
@@ -21,6 +22,9 @@ namespace AldiApplication
             logger.LogInformation("Die Anwendung wird gestartet...");
 
             await CheckDatabaseConnection(host);
+            
+            var orderService = host.Services.GetRequiredService<IOrderService>();
+            await orderService.ProcessOpenOrdersAsync();
 
             // await ExecuteOrderProcessAsync(host.Services);
             // await ReadAndSaveConsignmentsAsync(host.Services);
