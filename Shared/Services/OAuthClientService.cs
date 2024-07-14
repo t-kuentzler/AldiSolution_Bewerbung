@@ -545,4 +545,55 @@ public class OAuthClientService : IOAuthClientService
                 $"Maximale Anzahl an Wiederholungsversuchen ({maxRetryCount}) erreicht. Aktualisierung des ReturnPackages mit dem AldiReturnCode '{reportReturnPackageRequest.aldiReturnCode}' über die API fehlgeschlagen.");
             return false;
         }
+        
+        public async Task<bool> UpdateApiOrderStatusInProgressAsync(Order? order, int retryCount = 0)
+        {
+            const int maxRetryCount = 5;
+            const int delayDuration = 3000;
+
+            if (order == null)
+            {
+                _logger.LogError("Die übergebene Bestellung ist null.");
+                return false;
+            }
+
+            _logger.LogInformation(
+                $"Versuch, den API Status der Order mit dem OrderCode '{order.Code}' auf IN PROGRESS zu aktualisieren.");
+
+            await Task.Delay(delayDuration);
+
+            using (var client = _clientFactory.CreateClient())
+            {
+                var tokenResponse = await _accessTokenService.ValidateAndGetAccessToken();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
+
+                string updateStatusUrl =
+                    $"{_settings.BaseUrl}/aldivendorwebservices/2.0/DE/vendor/{_settings.VendorId}/orders/{order.Code}";
+                var updateContent = new StringContent(JsonConvert.SerializeObject(new { inProgress = true }),
+                    Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response = await client.PutAsync(updateStatusUrl, updateContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation(
+                        $"Bestellung mit Code {order.Code} wurde in der API erfolgreich auf IN PROGRESS aktualisiert.");
+                    return true;
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized && retryCount < maxRetryCount)
+                {
+                    _logger.LogWarning(
+                        "Der Token ist ungültig. Es wird versucht, ihn zu aktualisieren und die Anfrage zu wiederholen.");
+
+                    await _accessTokenService.GetAndUpdateNewAccessToken();
+                    return await UpdateApiOrderStatusInProgressAsync(order, retryCount + 1);
+                }
+                else
+                {
+                    _logger.LogError(
+                        $"Fehler beim Aktualisieren des API Status für Bestellung mit Code {order.Code}. Status Code: {response.StatusCode}, Response: {await response.Content.ReadAsStringAsync()}");
+                    return false;
+                }
+            }
+        }
     }
