@@ -1,10 +1,12 @@
-using System.Data;
-using System.Net.Mail;
-using Azure.Core;
-using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
+using Shared.Factories;
+using Shared.Repositories;
+using Shared.Services;
+using Shared.Validation;
+using AccessTokenService = Shared.Services.AccessTokenService;
 
 namespace Shared;
 
@@ -23,7 +25,26 @@ public static class ServiceCollectionExtensions
             {
                 throw new InvalidOperationException("Die Verbindungszeichenfolge wurde nicht in der Umgebungsvariablen gefunden.");
             }
+            
+            //Services
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IAccessTokenService, AccessTokenService>();
+            services.AddScoped<IOAuthClientService, OAuthClientService>();
+            
+            //Repositories
+            services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
 
+            
+            // OAuth Client Service Factory
+            services.AddSingleton<OAuthClientServiceFactory>();
+            services.AddScoped<IOAuthClientService>(provider =>
+                provider.GetRequiredService<OAuthClientServiceFactory>().Create());
+            
+            //Validator Wrapper
+            services.AddTransient(typeof(IValidatorWrapper<>), typeof(ValidatorWrapper<>));
+
+            
+            
             // // Repository-Dienste
             // services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             // services.AddScoped<IOrderRepository, OrderRepository>();
