@@ -23,8 +23,8 @@ namespace AldiApplication
 
             await CheckDatabaseConnection(host);
             
-            var orderService = host.Services.GetRequiredService<IOrderService>();
-            await orderService.ProcessOpenOrdersAsync();
+            var orderProcessingService = host.Services.GetRequiredService<IOrderProcessingService>();
+            await orderProcessingService.ProcessOpenOrdersAsync();
 
             // await ExecuteOrderProcessAsync(host.Services);
             // await ReadAndSaveConsignmentsAsync(host.Services);
