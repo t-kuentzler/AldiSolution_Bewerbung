@@ -12,16 +12,16 @@ public static class ServiceCollectionExtensions
     {
         public static void AddSharedServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Konfiguration des Datenbankkontexts mit SQL
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = Environment.GetEnvironmentVariable("MAGMA_ALDI_CONNECTIONSTRING_TEST");
+            
             if (!string.IsNullOrEmpty(connectionString))
             {
                 services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                    options.UseSqlServer(connectionString));
             }
             else
             {
-                throw new InvalidOperationException("Die Verbindungszeichenfolge des ConnectionString wurde nicht gefunden.");
+                throw new InvalidOperationException("Die Verbindungszeichenfolge wurde nicht in der Umgebungsvariablen gefunden.");
             }
 
             // // Repository-Dienste

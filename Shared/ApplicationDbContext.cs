@@ -276,16 +276,15 @@ public class ApplicationDbContext : DbContext
         {
             if (!optionsBuilder.IsConfigured)
             {
-                var configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.json")
-                    .Build();
-
-                var connectionString = configuration.GetConnectionString("DefaultConnection");
+                var connectionString = Environment.GetEnvironmentVariable("MAGMA_ALDI_CONNECTIONSTRING_TEST");
 
                 if (!string.IsNullOrEmpty(connectionString))
                 {
                     optionsBuilder.UseSqlServer(connectionString);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Keine gültige Verbindungszeichenfolge in der Umgebungsvariablen gefunden.");
                 }
             }
         }
