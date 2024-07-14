@@ -4,6 +4,6 @@ namespace Shared.Contracts;
 
 public interface IOrderService
 {
-    Task ProcessOpenOrdersAsync();
+    Task ProcessSingleOrderAsync(Order order);
     Task<Order> GetOrderByOrderCodeAsync(string orderCode);
 }

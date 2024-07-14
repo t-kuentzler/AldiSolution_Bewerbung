@@ -54,7 +54,7 @@ public class OrderService : IOrderService
         }
     }
 
-    private async Task ProcessSingleOrderAsync(Order order)
+    public async Task ProcessSingleOrderAsync(Order order)
     {
         try
         {
