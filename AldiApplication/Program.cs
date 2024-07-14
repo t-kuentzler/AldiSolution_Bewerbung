@@ -66,7 +66,7 @@ namespace AldiApplication
                            .AddEnvironmentVariables();
                 })
                 .ConfigureServices((context, services) => { ConfigureServices(services, context.Configuration); })
-                .UseSerilog()  // Serilog verwenden
+                .UseSerilog()
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
@@ -77,5 +77,7 @@ namespace AldiApplication
         {
             services.AddSharedServices(configuration);
         }
+        
+        
     }
 }
