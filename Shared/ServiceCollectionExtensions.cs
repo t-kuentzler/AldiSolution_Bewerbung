@@ -26,7 +26,8 @@ namespace Shared
             }
             else
             {
-                throw new InvalidOperationException("Die Verbindungszeichenfolge wurde nicht in der Umgebungsvariablen gefunden.");
+                throw new InvalidOperationException(
+                    "Die Verbindungszeichenfolge wurde nicht in der Umgebungsvariablen gefunden.");
             }
 
             // Add HttpClient factory
@@ -39,7 +40,7 @@ namespace Shared
                 options.Secret = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_CLIENTSECRET_TEST");
                 options.Password = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_PASSWORD_TEST");
             });
-
+           
             // Services
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IAccessTokenService, AccessTokenService>();
@@ -57,7 +58,7 @@ namespace Shared
             services.AddSingleton<IOAuthClientServiceFactory, OAuthClientServiceFactory>();
 
             // Registering the OAuthClientService with factory creation method
-            services.AddScoped(provider => 
+            services.AddScoped(provider =>
                 provider.GetRequiredService<IOAuthClientServiceFactory>().Create());
 
             // Validator Wrapper
@@ -69,6 +70,9 @@ namespace Shared
             services.AddTransient<IValidator<OrderEntry>, OrderEntryValidator>();
             services.AddTransient<IValidator<Order>, OrderValidator>();
             services.AddTransient<IValidator<UpdateStatus>, UpdateStatusValidator>();
+            services.AddTransient<IValidator<Consignment>, ConsignmentValidator>();
+            services.AddTransient<IValidator<ConsignmentEntry>, ConsignmentEntryValidator>();
+            services.AddTransient<IValidator<ShippingAddress>, ShippingAddressValidator>();
         }
     }
 }
