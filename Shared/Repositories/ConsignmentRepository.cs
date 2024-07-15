@@ -21,7 +21,7 @@ public class ConsignmentRepository : IConsignmentRepository
         {
             _applicationDbContext.Consignment.Add(consignment);
             await _applicationDbContext.SaveChangesAsync();
-        
+
             return (true, consignment.Id);
         }
         catch (Exception ex)
@@ -32,13 +32,13 @@ public class ConsignmentRepository : IConsignmentRepository
         }
     }
 
-    
+
     public async Task<Consignment?> GetConsignmentByIdAsync(int consignmentId)
     {
         try
         {
             var consignment = await _applicationDbContext.Consignment.FindAsync(consignmentId);
-        
+
             return consignment;
         }
         catch (Exception ex)
@@ -48,7 +48,6 @@ public class ConsignmentRepository : IConsignmentRepository
                 ex);
         }
     }
-
 
 
     public async Task SaveConsignmentEntryAsync(ConsignmentEntry consignmentEntry)
@@ -80,6 +79,7 @@ public class ConsignmentRepository : IConsignmentRepository
                 ex);
         }
     }
+
     public async Task UpdateConsignmentAsync(Consignment consignment)
     {
         try
@@ -89,10 +89,11 @@ public class ConsignmentRepository : IConsignmentRepository
         }
         catch (Exception ex)
         {
-            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Consignment: '{consignment}'.", ex);
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Consignment: '{consignment}'.",
+                ex);
         }
     }
-    
+
     public async Task<List<Consignment>> GetConsignmentsWithStatusShippedAsync()
     {
         try
@@ -108,6 +109,30 @@ public class ConsignmentRepository : IConsignmentRepository
         catch (Exception ex)
         {
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten.", ex);
+        }
+    }
+
+    public async Task<bool> UpdateConsignmentStatusByIdAsync(int consignmentId, string newStatus)
+    {
+        try
+        {
+            var consignment = await _applicationDbContext.Consignment.FirstOrDefaultAsync(c => c.Id == consignmentId);
+
+            if (consignment != null)
+            {
+                consignment.Status = newStatus;
+
+                await _applicationDbContext.SaveChangesAsync();
+
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. ConsignmentId: '{consignmentId}'.",
+                ex);
         }
     }
 }
