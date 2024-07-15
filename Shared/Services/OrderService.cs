@@ -168,5 +168,79 @@ public class OrderService : IOrderService
                 $"Bestellung mit Code '{order.Code}' wurde erfolgreich in der Datenbank auf '{status}' aktualisiert.");
         }
     }
+    
+    public async Task<string> GetOrderStatusByOrderCodeAsync(string orderCode)
+    {
+        try
+        {
+            var orderStatus = await _orderRepository.GetOrderStatusByOrderCodeAsync(orderCode);
+
+            if (string.IsNullOrEmpty(orderStatus))
+            {
+                _logger.LogError($"Der Status für die Order mit dem OrderCode '{orderCode}' ist null oder empty.");
+
+                throw new OrderStatusIsNullException();
+            }
+
+            return orderStatus;
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex, $"Repository-Exception beim Abrufen von Order mit dem OrderCode '{orderCode}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Unerwarteter Fehler beim Abrufen von Order mit dem OrderCode '{orderCode}'.");
+            throw new OrderServiceException($"Fehler beim Abrufen der Order mit dem OrderCode '{orderCode}'.", ex);
+        }
+    }
+    
+    public async Task<bool> UpdateSingleOrderStatusInDatabaseAsync(string orderCode, string status)
+    {
+        if (string.IsNullOrEmpty(orderCode))
+        {
+            _logger.LogError("OrderCode darf beim aktualisieren des Order Status nicht leer sein.");
+            return false;
+        }
+
+        try
+        {
+            var updateStatus = new UpdateStatus
+            {
+                Code = orderCode,
+                Status = status
+            };
+            await _updateStatusValidator.ValidateAndThrowAsync(updateStatus);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(
+                $"Bei der Aktualisierung des Status {status} mit dem Code {orderCode} ist ein Fehler aufgetreten: {ex.Message}");
+            return false;
+        }
+
+        try
+        {
+            bool updateSuccess = await _orderRepository.UpdateOrderStatusAsync(orderCode, status);
+
+            if (!updateSuccess)
+            {
+                _logger.LogError(
+                    $"Fehler beim Aktualisieren des Status in der Datenbank für Bestellung mit Code {orderCode}.");
+                return false;
+            }
+
+            _logger.LogInformation(
+                $"Bestellung mit Code {orderCode} wurde erfolgreich in der Datenbank auf {status} aktualisiert.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            var updateOrderStatusException = new UpdateOrderStatusException(orderCode, ex);
+            _logger.LogError(updateOrderStatusException.Message);
+            return false;
+        }
+    }
 }
 
