@@ -108,7 +108,7 @@ public class ConsignmentProcessingService : IConsignmentProcessingService
         dbConsignment.AldiConsignmentCode = aldiConsignmentCode;
         await _consignmentService.UpdateConsignmentAsync(dbConsignment);
         _logger.LogInformation(
-            $"Der ApiConsignmentCode für das Consignment mit der Id '{consignmentId}' wurde erfolgreich aktualisiert.");
+            $"Der AldiConsignmentCode '{aldiConsignmentCode}' für das Consignment mit der Id '{consignmentId}' wurde erfolgreich aktualisiert.");
     }
 
     private async Task UpdateOrderStatusIfNeededAsync(string orderCode, string status)
