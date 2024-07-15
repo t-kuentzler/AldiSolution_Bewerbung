@@ -69,4 +69,25 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
+    
+    public async Task<string?> GetOrderStatusByOrderCodeAsync(string orderCode)
+    {
+        try
+        {
+            var order = await _applicationDbContext.Order
+                .FirstOrDefaultAsync(o => o.Code == orderCode);
+            if (order == null)
+            {
+                throw new OrderNotFoundException(
+                    $"Es wurde keine Order mit dem OrderCode '{orderCode}' in der Datenbank gefunden.");
+            }
+
+            return order.Status;
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderCode: '{orderCode}'.",
+                ex);
+        }
+    }
 }
