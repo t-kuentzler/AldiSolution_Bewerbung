@@ -17,4 +17,6 @@ public interface IOAuthClientService
 
     Task<ConsignmentListResponse> CreateApiConsignmentAsync(
         List<ConsignmentRequest> consignmentRequestsList, string orderCode, int retryCount = 0);
+
+    Task<ReturnResponse> GetApiReturnsWithStatusCreatedAsync(string status);
 }
