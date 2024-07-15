@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Shared;
+using Shared.Contracts;
 using Shared.Logger;
 
 namespace DhlApiApplication;
@@ -21,6 +22,10 @@ class Program
 
         await CheckDatabaseConnection(host);
 
+        var dhlTrackingStatusService = host.Services.GetRequiredService<IDhlTrackingStatusService>();
+        await dhlTrackingStatusService.ReadAndUpdateTrackingStatusAsync();
+        
+        Log.CloseAndFlush();
     }
     
     private static async Task CheckDatabaseConnection(IHost host)
