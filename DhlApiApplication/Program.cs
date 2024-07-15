@@ -19,7 +19,7 @@ class Program
         
         var logger = host.Services.GetRequiredService<ILogger<Program>>();
         logger.LogInformation("Die Anwendung wird gestartet...");
-
+    
         await CheckDatabaseConnection(host);
 
         var dhlTrackingStatusService = host.Services.GetRequiredService<IDhlTrackingStatusService>();
