@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Exceptions;
@@ -211,6 +212,29 @@ public class ConsignmentService : IConsignmentService
             throw new Exception(
                 $"Unerwarteter Fehler beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{entry.Id}' in der Datenbank.",
                 ex);
+        }
+    }
+    
+    public async Task<List<Consignment>> GetConsignmentsWithStatusShippedAsync()
+    {
+        try
+        {
+            var consignments = await _consignmentRepository.GetConsignmentsWithStatusShippedAsync();
+
+            return consignments;
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim abrufen der Consignments mit dem Status '{SharedStatus.Shipped}'.");
+            return new List<Consignment>();
+
+        }
+        catch (GetConsignmentsWithStatusShippedException ex)
+        {
+            _logger.LogError(
+                ex, $"Es ist ein unerwarteter Fehler beim abrufen aller Consignment mit dem Status SHIPPED aufgetreten.");
+            return new List<Consignment>();
         }
     }
 }
