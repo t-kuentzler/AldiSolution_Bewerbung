@@ -34,12 +34,18 @@ namespace Shared
             // Add HttpClient factory
             services.AddHttpClient();
 
-            // Bind OAuthSettings and load the password from environment variables
+            //Appsettings
             services.Configure<OAuthSettings>(options =>
             {
                 configuration.GetSection("OAuthSettings").Bind(options);
                 options.Secret = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_CLIENTSECRET_TEST");
                 options.Password = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_PASSWORD_TEST");
+            });
+            
+            services.Configure<EmailConfiguration>(options =>
+            {
+                configuration.GetSection("EmailConfiguration").Bind(options);
+                options.SenderPassword = Environment.GetEnvironmentVariable("MAGMA_SMTP_PASSWORD");
             });
            
             // Services
@@ -51,6 +57,7 @@ namespace Shared
             services.AddScoped<ICsvFileService, CsvFileService>();
             services.AddScoped<IReturnProcessingService, ReturnProcessingService>();
             services.AddScoped<IReturnService, ReturnService>();
+            services.AddScoped<IEmailService, EmailService>();
 
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
