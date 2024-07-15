@@ -47,7 +47,7 @@ public class OAuthClientService : IOAuthClientService
 
             var content = new FormUrlEncodedContent(postData);
 
-            string tokenUrl = $"{_settings.BaseUrl}{_settings.TokenEndpoint}";
+            string tokenUrl = $"{_settings.BaseUrl}authorizationserver/oauth/token";
 
             try
             {
