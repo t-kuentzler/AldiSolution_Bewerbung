@@ -48,6 +48,12 @@ namespace Shared
                 configuration.GetSection("EmailConfiguration").Bind(options);
                 options.SenderPassword = Environment.GetEnvironmentVariable("MAGMA_SMTP_PASSWORD");
             });
+            
+           services.Configure<DhlSettings>(options =>
+            {
+                configuration.GetSection("DhlSettings").Bind(options);
+                options.ApiKey = Environment.GetEnvironmentVariable("MAGMA_DHL_API_KEY");
+            });
            
             // Services
             services.AddScoped<IOrderService, OrderService>();
