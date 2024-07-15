@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Exceptions;
@@ -89,6 +90,24 @@ public class ConsignmentRepository : IConsignmentRepository
         catch (Exception ex)
         {
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Consignment: '{consignment}'.", ex);
+        }
+    }
+    
+    public async Task<List<Consignment>> GetConsignmentsWithStatusShippedAsync()
+    {
+        try
+        {
+            var shippedConsignments = await _applicationDbContext.Consignment
+                .Where(c => c.Status == SharedStatus.Shipped && c.Carrier == SharedStatus.Dhl)
+                .Include(c => c.ConsignmentEntries)
+                .Include(c => c.ShippingAddress)
+                .ToListAsync();
+
+            return shippedConsignments;
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten.", ex);
         }
     }
 }
