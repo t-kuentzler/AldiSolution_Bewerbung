@@ -135,4 +135,18 @@ public class ConsignmentRepository : IConsignmentRepository
                 ex);
         }
     }
+    
+    public async Task<Consignment?> GetConsignmentByConsignmentIdAsync(int consignmentId)
+    {
+        try
+        {
+            return await _applicationDbContext.Consignment
+                .FirstOrDefaultAsync(c => c.Id == consignmentId);
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. ConsignmentId: '{consignmentId}'.",
+                ex);
+        }
+    }
 }
