@@ -32,6 +32,14 @@ namespace Shared
             // Add HttpClient factory
             services.AddHttpClient();
 
+            // Bind OAuthSettings and load the password from environment variables
+            services.Configure<OAuthSettings>(options =>
+            {
+                configuration.GetSection("OAuthSettings").Bind(options);
+                options.Secret = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_CLIENTSECRET_TEST");
+                options.Password = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_PASSWORD_TEST");
+            });
+
             // Services
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IAccessTokenService, AccessTokenService>();
