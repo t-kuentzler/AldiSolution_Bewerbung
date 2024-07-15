@@ -13,7 +13,6 @@ namespace AldiApplication
     {
         public static async Task Main(string[] args)
         {
-            // Logger konfigurieren
             LoggerConfigurator.ConfigureLogger();
 
             var host = CreateHostBuilder(args).Build();
@@ -25,11 +24,13 @@ namespace AldiApplication
             
             var orderProcessingService = host.Services.GetRequiredService<IOrderProcessingService>();
             await orderProcessingService.ProcessOpenOrdersAsync();
-
-            // await ExecuteOrderProcessAsync(host.Services);
-            // await ReadAndSaveConsignmentsAsync(host.Services);
-            // await ReadAndSaveReturnsAsync(host.Services);
-
+            
+            var consignmentProcessingService = host.Services.GetRequiredService<IConsignmentProcessingService>();
+            await consignmentProcessingService.ReadAndSaveConsignmentsAsync();
+            
+            var returnProcessingService = host.Services.GetRequiredService<IReturnProcessingService>();
+            await returnProcessingService.ReadAndSaveReturnsAsync();
+            
             Log.CloseAndFlush();
         }
 
