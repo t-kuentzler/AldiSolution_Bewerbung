@@ -56,6 +56,7 @@ namespace Shared
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
+            services.AddScoped<IReturnRepository, ReturnRepository>();
 
             //Generator
             services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
