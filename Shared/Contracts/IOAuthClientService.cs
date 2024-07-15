@@ -14,4 +14,7 @@ public interface IOAuthClientService
     Task<bool> CancelConsignmentAfterDispatchAsync(Consignment consignment);
     Task<bool> ReportReturnPackage(ReportReturnPackageRequest reportReturnPackageRequest);
     Task<bool> UpdateApiOrderStatusInProgressAsync(Order? order, int retryCount = 0);
+
+    Task<ConsignmentListResponse> CreateApiConsignmentAsync(
+        List<ConsignmentRequest> consignmentRequestsList, string orderCode, int retryCount = 0);
 }

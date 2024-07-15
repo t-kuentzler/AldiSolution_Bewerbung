@@ -7,4 +7,5 @@ public interface IOrderRepository
     Task CreateOrderAsync(Order order);
     Task<bool> UpdateOrderStatusAsync(string orderCode, string newStatus);
     Task<Order?> GetOrderByOrderCodeAsync(string orderCode);
+    Task<string?> GetOrderStatusByOrderCodeAsync(string orderCode);
 }
