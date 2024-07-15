@@ -65,6 +65,8 @@ namespace Shared
             services.AddScoped<IReturnProcessingService, ReturnProcessingService>();
             services.AddScoped<IReturnService, ReturnService>();
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IDhlApiService, DhlApiService>();
+            services.AddScoped<IDhlTrackingStatusService, DhlTrackingStatusService>();
 
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
