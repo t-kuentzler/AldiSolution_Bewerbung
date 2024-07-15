@@ -37,6 +37,7 @@ public class SharedStatus
     public const string Default = "DEFAULT";
   
     public const string Dhl = "DHL";
-
+    public const string delivered = "delivered";
+    public const string failure = "failure";
     
 }
