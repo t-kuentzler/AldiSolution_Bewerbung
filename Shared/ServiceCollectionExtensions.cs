@@ -44,10 +44,13 @@ namespace Shared
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IAccessTokenService, AccessTokenService>();
             services.AddScoped<IOrderProcessingService, OrderProcessingService>();
+            services.AddScoped<IConsignmentService, ConsignmentService>();
+            services.AddScoped<IConsignmentProcessingService, ConsignmentProcessingService>();
 
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
+            services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
 
             // OAuth Client Service Factory
             services.AddSingleton<IOAuthClientServiceFactory, OAuthClientServiceFactory>();
