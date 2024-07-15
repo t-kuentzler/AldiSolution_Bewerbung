@@ -11,14 +11,14 @@ using Shared.Services;
 using Shared.Validation;
 using AccessTokenService = Shared.Services.AccessTokenService;
 
-namespace Shared;
-
-public static class ServiceCollectionExtensions
+namespace Shared
+{
+    public static class ServiceCollectionExtensions
     {
         public static void AddSharedServices(this IServiceCollection services, IConfiguration configuration)
         {
             var connectionString = Environment.GetEnvironmentVariable("MAGMA_ALDI_CONNECTIONSTRING_TEST");
-            
+
             if (!string.IsNullOrEmpty(connectionString))
             {
                 services.AddDbContext<ApplicationDbContext>(options =>
@@ -28,32 +28,35 @@ public static class ServiceCollectionExtensions
             {
                 throw new InvalidOperationException("Die Verbindungszeichenfolge wurde nicht in der Umgebungsvariablen gefunden.");
             }
-            
-            //Services
+
+            // Add HttpClient factory
+            services.AddHttpClient();
+
+            // Services
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IAccessTokenService, AccessTokenService>();
-            services.AddScoped<IOAuthClientService, OAuthClientService>();
             services.AddScoped<IOrderProcessingService, OrderProcessingService>();
-            
-            //Repositories
+
+            // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
 
-            
             // OAuth Client Service Factory
             services.AddSingleton<IOAuthClientServiceFactory, OAuthClientServiceFactory>();
-            services.AddScoped<IOAuthClientService>(provider =>
-                provider.GetRequiredService<OAuthClientServiceFactory>().Create());
-            
-            //Validator Wrapper
+
+            // Registering the OAuthClientService with factory creation method
+            services.AddScoped(provider => 
+                provider.GetRequiredService<IOAuthClientServiceFactory>().Create());
+
+            // Validator Wrapper
             services.AddTransient(typeof(IValidatorWrapper<>), typeof(ValidatorWrapper<>));
-            
-            //Validators
+
+            // Validators
             services.AddTransient<IValidator<AccessToken>, AccessTokenValidator>();
             services.AddTransient<IValidator<DeliveryAddress>, DeliveryAddressValidator>();
             services.AddTransient<IValidator<OrderEntry>, OrderEntryValidator>();
             services.AddTransient<IValidator<Order>, OrderValidator>();
             services.AddTransient<IValidator<UpdateStatus>, UpdateStatusValidator>();
-
         }
     }
+}
