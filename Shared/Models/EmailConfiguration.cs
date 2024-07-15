@@ -6,7 +6,7 @@ namespace Shared.Models
         public int Port { get; set; }
         public string SenderEmail { get; set; } = string.Empty;
         public string SenderUsername { get; set; } = string.Empty;
-        public string SenderPassword { get; set; } = string.Empty;
+        public string? SenderPassword { get; set; } = string.Empty;
         public string RecipientEmail { get; set; } = string.Empty;
     }
 }
