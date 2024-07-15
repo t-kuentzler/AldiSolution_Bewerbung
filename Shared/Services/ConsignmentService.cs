@@ -237,4 +237,37 @@ public class ConsignmentService : IConsignmentService
             return new List<Consignment>();
         }
     }
+    
+    public async Task<bool> UpdateConsignmentStatusByConsignmentIdAsync(string newStatus, int consignmentId)
+    {
+        try
+        {
+            string status;
+
+            if (newStatus.Equals(SharedStatus.delivered))
+            {
+                status = SharedStatus.Delivered;
+            }
+            else
+            {
+                return false;
+            }
+
+            await _consignmentRepository.UpdateConsignmentStatusByIdAsync(consignmentId, status);
+
+            return true;
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Consignment mit der ConsignmentId '{consignmentId}'.");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Fehler beim Aktualisieren des Status für das Consignment mit der ConsignmentId '{consignmentId}'.");
+            return false;
+        }
+    }
 }
