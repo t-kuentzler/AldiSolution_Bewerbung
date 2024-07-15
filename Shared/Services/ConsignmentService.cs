@@ -254,7 +254,8 @@ public class ConsignmentService : IConsignmentService
             }
 
             await _consignmentRepository.UpdateConsignmentStatusByIdAsync(consignmentId, status);
-
+            
+            _logger.LogInformation($"Der Status der Lieferung mit der ConsignmentId '{consignmentId}' wurde erfolgreich auf '{status}' aktualisiert.");
             return true;
         }
         catch (RepositoryException ex)
