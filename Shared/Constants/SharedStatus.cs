@@ -36,5 +36,7 @@ public class SharedStatus
     public const string PostOffice = "POST_OFFICE";
     public const string Default = "DEFAULT";
   
+    public const string Dhl = "DHL";
+
     
 }
