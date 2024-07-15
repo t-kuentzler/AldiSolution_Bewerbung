@@ -105,7 +105,7 @@ public class CsvFileService : ICsvFileService
 
         if (filteredCsvConsignmentsByKdnr.Count == 0)
         {
-            _logger.LogWarning(
+            _logger.LogInformation(
                 $"Es wurden keine Datensätze in der CSV Datei mit der kdnr '{customerNumber}' gefunden.");
             return new List<Consignment>();
         }
