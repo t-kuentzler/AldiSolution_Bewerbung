@@ -49,6 +49,7 @@ namespace Shared
             services.AddScoped<IConsignmentProcessingService, ConsignmentProcessingService>();
             services.AddScoped<ICsvFileService, CsvFileService>();
             services.AddScoped<IReturnProcessingService, ReturnProcessingService>();
+            services.AddScoped<IReturnService, ReturnService>();
 
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
