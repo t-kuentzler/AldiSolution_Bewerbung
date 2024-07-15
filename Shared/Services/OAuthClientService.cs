@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
+using Shared.Exceptions;
 using Shared.Models;
 
 namespace Shared.Services;
@@ -593,6 +594,73 @@ public class OAuthClientService : IOAuthClientService
                     _logger.LogError(
                         $"Fehler beim Aktualisieren des API Status für Bestellung mit Code {order.Code}. Status Code: {response.StatusCode}, Response: {await response.Content.ReadAsStringAsync()}");
                     return false;
+                }
+            }
+        }
+        
+        public async Task<ConsignmentListResponse> CreateApiConsignmentAsync(
+            List<ConsignmentRequest> consignmentRequestsList, string orderCode, int retryCount = 0)
+        {
+            const int maxRetryCount = 2;
+            const int delayDuration = 3000;
+
+            _logger.LogInformation(
+                $"Versuch, ein Consignment über die Aldi API zu erstellen für VendorConsignmentCode '{consignmentRequestsList.FirstOrDefault()?.vendorConsignmentCode}'.");
+
+            await Task.Delay(
+                delayDuration); // Füge eine Verzögerung von 3 Sekunden hinzu, bevor die Anfrage gestartet wird
+
+            using (var client = _clientFactory.CreateClient())
+            {
+                var tokenResponse = await _accessTokenService.ValidateAndGetAccessToken();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
+
+                var jsonRequest = JsonConvert.SerializeObject(consignmentRequestsList);
+                var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+
+                string consignmentUrl =
+                    $"{_settings.BaseUrl}aldivendorwebservices/2.0/DE/vendor/{_settings.VendorId}/orders/{orderCode}/consignments";
+
+                try
+                {
+                    var response = await client.PostAsync(consignmentUrl, content);
+                    var responseBody = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseJson = JsonConvert.DeserializeObject<ConsignmentListResponse>(responseBody);
+                        _logger.LogInformation(
+                            $"Consignment für VendorConsignmentCode '{consignmentRequestsList.FirstOrDefault()?.vendorConsignmentCode}' wurde erfolgreich über API erstellt.");
+                        return responseJson ??
+                               throw new ConsignmentResponseIsNullException("ConsignmentResponse der API ist null.");
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized &&
+                             retryCount < maxRetryCount)
+                    {
+                        _logger.LogWarning(
+                            "Der Token ist ungültig. Es wird versucht, ihn zu aktualisieren und die Anfrage zu wiederholen.");
+                        await _accessTokenService.GetAndUpdateNewAccessToken();
+                        return await CreateApiConsignmentAsync(consignmentRequestsList, orderCode, retryCount + 1);
+                    }
+                    else
+                    {
+                        _logger.LogError(
+                            $"Fehler beim Erstellen des Consignment für VendorConsignmentCode '{consignmentRequestsList.FirstOrDefault()?.vendorConsignmentCode}' über die Aldi API. Status Code: {response.StatusCode}, Response: {responseBody}");
+                        throw new ApiException(
+                            $"API-Fehler beim Erstellen des Consignment: Status Code {response.StatusCode}, Response: {responseBody}");
+                    }
+                }
+                catch (HttpRequestException ex)
+                {
+                    _logger.LogError(ex, $"HTTP-Anfragefehler bei Erstellung des Consignment.");
+                    throw new ApiException(
+                        $"HTTP-Anfragefehler bei der Kommunikation mit der API, Message: {ex.Message}", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Unerwarteter Fehler bei Erstellung des Consignment.");
+                    throw new ApiException(
+                        $"Unerwarteter Fehler bei der Verarbeitung der Anfrage, Message: {ex.Message}", ex);
                 }
             }
         }
