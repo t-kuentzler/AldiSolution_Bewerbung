@@ -20,4 +20,5 @@ public interface IOAuthClientService
 
     Task<ReturnResponse> GetApiReturnsWithStatusCreatedAsync(string status);
     Task<bool> ReturnInProgress(ReturnInProgressRequest returnInProgress, int retryCount = 0);
+    Task<bool> ReportConsignmentDeliveryAsync(Consignment consignment, int retryCount = 0);
 }
