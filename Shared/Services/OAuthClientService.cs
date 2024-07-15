@@ -668,7 +668,7 @@ public class OAuthClientService : IOAuthClientService
         public async Task<ReturnResponse> GetApiReturnsWithStatusCreatedAsync(string status)
         {
             _logger.LogInformation("Es wird versucht die Retouren abzurufen.");
-            using (var client = new HttpClient())
+            using (var client = _clientFactory.CreateClient())
             {
                 var tokenResponse = await _accessTokenService.ValidateAndGetAccessToken();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
@@ -729,6 +729,51 @@ public class OAuthClientService : IOAuthClientService
                     _logger.LogError(
                         $"Could not obtain orders. Status Code: {response.StatusCode}, Response: {await response.Content.ReadAsStringAsync()}");
                     return new ReturnResponse();
+                }
+            }
+        }
+        
+        public async Task<bool> ReturnInProgress(ReturnInProgressRequest returnInProgress, int retryCount = 0)
+        {
+            const int
+                maxRetryCount = 5; //Bei API Errors (z.B. InvalidTokenError) mehrmals versuchen Methode auszuführen
+            const int delayDuration = 3000;
+
+            await Task.Delay(delayDuration);
+
+            var tokenResponse = await _accessTokenService.ValidateAndGetAccessToken();
+            using (var client = _clientFactory.CreateClient())
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
+                string returnUrl =
+                    $"{_settings.BaseUrl}aldivendorwebservices/2.0/DE/vendor/{_settings.VendorId}/returns/inProgress";
+                var jsonSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
+                var jsonContent = JsonConvert.SerializeObject(returnInProgress, jsonSettings);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response = await client.PutAsync(returnUrl, content);
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation(
+                        $"InProgress für Retoure mit dem AldiReturnCode '{returnInProgress.aldiReturnCode}' erfolgreich über die API gemeldet.");
+                    return true;
+                }
+                else
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError(
+                        $"Fehler bei der InProgress Meldung der Retoure. Status Code: {response.StatusCode}, Response: {responseContent}");
+
+                    // Überprüfe auf InvalidTokenError und limitiere die Anzahl der Wiederholungen
+                    if (response.StatusCode == HttpStatusCode.Unauthorized &&
+                        responseContent.Contains("InvalidTokenError") && retryCount < maxRetryCount)
+                    {
+                        _logger.LogWarning("InvalidTokenError erkannt, versuche den Token zu erneuern.");
+                        await _accessTokenService.GetAndUpdateNewAccessToken();
+                        return await ReturnInProgress(returnInProgress, retryCount + 1);
+                    }
+
+                    return false;
                 }
             }
         }

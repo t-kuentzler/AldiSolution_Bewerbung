@@ -19,4 +19,5 @@ public interface IOAuthClientService
         List<ConsignmentRequest> consignmentRequestsList, string orderCode, int retryCount = 0);
 
     Task<ReturnResponse> GetApiReturnsWithStatusCreatedAsync(string status);
+    Task<bool> ReturnInProgress(ReturnInProgressRequest returnInProgress, int retryCount = 0);
 }
