@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Factories;
+using Shared.Generator;
 using Shared.Models;
 using Shared.Repositories;
 using Shared.Services;
@@ -56,6 +57,11 @@ namespace Shared
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
 
+            //Generator
+            services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
+            services.AddScoped<IRmaNumberGenerator, RandomRmaNumberGenerator>();
+
+            
             // OAuth Client Service Factory
             services.AddSingleton<IOAuthClientServiceFactory, OAuthClientServiceFactory>();
 
