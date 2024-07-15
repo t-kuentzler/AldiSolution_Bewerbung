@@ -89,7 +89,7 @@ public class OAuthClientService : IOAuthClientService
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
 
-                string ordersUrl = $"{_settings.BaseUrl}{_settings.GetOrdersEndpoint}";
+                string ordersUrl = $"{_settings.BaseUrl}aldivendorwebservices/2.0/DE/vendor/magmaheimtex_DE/orders?pageNumber=0&pageSize=100";
 
                 try
                 {
