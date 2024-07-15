@@ -1,3 +1,4 @@
+using System.Net.Mail;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -89,6 +90,15 @@ namespace Shared
             services.AddTransient<IValidator<Consignment>, ConsignmentValidator>();
             services.AddTransient<IValidator<ConsignmentEntry>, ConsignmentEntryValidator>();
             services.AddTransient<IValidator<ShippingAddress>, ShippingAddressValidator>();
+            services.AddTransient<IValidator<Address>, AddressValidator>();
+            services.AddTransient<IValidator<CustomerInfo>, CustomerInfoValidator>();
+            services.AddTransient<IValidator<ReturnConsignment>, ReturnConsignmentValidator>();
+            services.AddTransient<IValidator<ReturnEntry>, ReturnEntryValidator>();
+            services.AddTransient<IValidator<ReturnPackage>, ReturnPackageValidator>();
+            services.AddTransient<IValidator<Return>, ReturnValidator>();
+            
+            services.AddSingleton<SmtpClient>();
+
         }
     }
 }
