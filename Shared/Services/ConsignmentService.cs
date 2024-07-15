@@ -134,4 +134,83 @@ public class ConsignmentService : IConsignmentService
         };
         return consignmentRequestList;
     }
+
+    public async Task UpdateConsignmentEntryQuantitiesAsync(Order? order, ReturnEntry returnEntry)
+    {
+        if (order == null)
+        {
+            _logger.LogError($"'{nameof(order)}' darf nicht null sein.");
+            throw new ArgumentNullException(nameof(order));
+        }
+
+        if (returnEntry == null)
+        {
+            _logger.LogError($"'{nameof(returnEntry)}' darf nicht null sein.");
+            throw new ArgumentNullException(nameof(returnEntry));
+        }
+
+        int remainingQuantityToReturn = returnEntry.Quantity;
+
+        foreach (var consignment in order.Consignments)
+        {
+            var consignmentEntry = consignment.ConsignmentEntries
+                .FirstOrDefault(ce => ce.OrderEntryNumber == returnEntry.OrderEntryNumber);
+
+            if (consignmentEntry != null)
+            {
+                int quantityToReturnFromEntry = Math.Min(remainingQuantityToReturn,
+                    consignmentEntry.Quantity - consignmentEntry.CancelledOrReturnedQuantity);
+                if (quantityToReturnFromEntry > 0)
+                {
+                    await UpdateConsignmentEntryQuantity(consignmentEntry, quantityToReturnFromEntry);
+                    remainingQuantityToReturn -= quantityToReturnFromEntry;
+                }
+
+                if (remainingQuantityToReturn <= 0)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    private async Task UpdateConsignmentEntryQuantity(ConsignmentEntry entry, int quantityToReturn)
+    {
+        if (entry == null)
+        {
+            _logger.LogError($"'{nameof(entry)}' darf nicht null sein.");
+            throw new ArgumentNullException(nameof(entry));
+        }
+
+        if (quantityToReturn <= 0)
+        {
+            _logger.LogError("Die Quantity muss positiv sein.");
+            throw new ArgumentException("Die Quantity muss positiv sein.", nameof(quantityToReturn));
+        }
+
+        entry.CancelledOrReturnedQuantity += quantityToReturn;
+
+        try
+        {
+            _logger.LogInformation(
+                $"Es wird versucht, die Quantity des Consignment mit der Id '{entry.ConsignmentId}' in der Datenbank zu aktualisieren.");
+            await _consignmentRepository.UpdateConsignmentEntryAsync(entry);
+            _logger.LogInformation(
+                $"Es wurde erfolgreich die Quantity des Consignment mit der Id '{entry.ConsignmentId}' in der Datenbank aktualisiert.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{entry.Id}' in der Datenbank.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{entry.Id}' in der Datenbank.");
+            throw new Exception(
+                $"Unerwarteter Fehler beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{entry.Id}' in der Datenbank.",
+                ex);
+        }
+    }
 }
