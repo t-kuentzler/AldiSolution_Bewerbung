@@ -28,7 +28,7 @@ public class DhlTrackingStatusService : IDhlTrackingStatusService
     {
         await _accessTokenService.EnsureTokenDataExists();
 
-        // Alle Consignments mit Status SHIPPED auslesen und prüfen ob die trackingnummer delivered oder failure ist
+        // Alle Consignments mit Status SHIPPED auslesen und prüfen ob die trackingnummer delivered 
         var consignments = await _consignmentService.GetConsignmentsWithStatusShippedAsync();
 
         if (consignments.Count == 0)
