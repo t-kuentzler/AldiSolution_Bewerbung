@@ -70,6 +70,7 @@ namespace Shared
             services.AddScoped<IShippedOrdersProcessingService, ShippedOrdersProcessingService>();
             services.AddScoped<IDpdTrackingDataService, DpdTrackingDataService>();
             services.AddScoped<IFileService, FileService>();
+            services.AddScoped<IQuantityCheckService, QuantityCheckService>();
 
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
