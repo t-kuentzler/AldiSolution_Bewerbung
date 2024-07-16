@@ -126,4 +126,24 @@ public class OrderRepository : IOrderRepository
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Status: '{status}'.", ex);
         }
     }
+    
+    public async Task UpdateOrderStatusByIdAsync(int orderId, string status)
+    {
+        try
+        {
+            var order = await _applicationDbContext.Order.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order != null)
+            {
+                order.Status = status;
+                _applicationDbContext.Order.Update(order);
+                await _applicationDbContext.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren des Status für die Order mit der Id '{orderId}'.",
+                ex);
+        }
+    }
 }

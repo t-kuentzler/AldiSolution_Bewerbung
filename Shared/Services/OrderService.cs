@@ -259,5 +259,33 @@ public class OrderService : IOrderService
                 $"Unerwarteter Fehler beim aktualisieren des Status '{newStatus}' für die Bestellung mit dem OrderCode '{orderCode}'.");
         }
     }
+    
+    public async Task UpdateOrderStatusByIdAsync(int orderId, string status)
+    {
+        try
+        {
+            _logger.LogInformation(
+                $"Es wird versucht den Status der Bestellung mit der Id '{orderId}' in der Datenbank auf '{status}' zu aktualisiert.");
+
+            await _orderRepository.UpdateOrderStatusByIdAsync(orderId, status);
+
+            _logger.LogInformation(
+                $"Der Status der Bestellung mit der Id '{orderId}' wurde in der Datenbank erfolgreich auf '{status}' aktualisiert.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Status '{status}' für die Bestellung mit der Id '{orderId}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren des Status '{status}' für die Bestellung mit der Id '{orderId}'.");
+            throw new OrderServiceException(
+                $"Unerwarteter Fehler beim aktualisieren des Status '{status}' für die Bestellung mit der Id '{orderId}'.",
+                ex);
+        }
+    }
 }
 
