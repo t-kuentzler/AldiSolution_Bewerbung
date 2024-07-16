@@ -520,4 +520,35 @@ public class ReturnService : IReturnService
                 ex);
         }
     }
+    
+    public async Task<List<Return>> GetAllReturnsByStatusesAsync(List<string> statuses)
+    {
+        if (statuses == null || !statuses.Any())
+        {
+            _logger.LogError($"'{nameof(statuses)}' darf nicht null oder leer sein.");
+            throw new ArgumentNullException($"'{nameof(statuses)}' darf nicht null oder leer sein.");
+        }
+
+        try
+        {
+            var returns = new List<Return>();
+            foreach (var status in statuses)
+            {
+                var returnsWithStatus = await _returnRepository.GetReturnsWithStatusAsync(status);
+                returns.AddRange(returnsWithStatus);
+            }
+
+            return returns.Distinct().ToList(); // Vermeiden von Duplikaten, falls vorhanden
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex, $"Repository-Exception beim Abrufen von Retouren.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Unerwarteter Fehler beim Abrufen von Retouren.");
+            throw new ReturnServiceException($"Unerwarteter Fehler beim Abrufen von Retouren.", ex);
+        }
+    }
 }

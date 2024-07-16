@@ -16,4 +16,5 @@ public interface IReturnService
         Dictionary<int, ReturnEntryModel> returnEntries);
 
     Task<List<Return>> SearchReturnsAsync(SearchTerm searchTerm, List<string> statuses);
+    Task<List<Return>> GetAllReturnsByStatusesAsync(List<string> statuses);
 }
