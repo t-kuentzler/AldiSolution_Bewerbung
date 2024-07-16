@@ -499,5 +499,69 @@ public class OrderService : IOrderService
             await _cancellationService.CancelWholeOrder(order);
         }
     }
+    
+    public async Task<List<Order>> GetOrdersByIds(List<int> selectedOrders)
+    {
+        List<Order> orders = new List<Order>();
+
+        foreach (var orderId in selectedOrders)
+        {
+            try
+            {
+                var order = await _orderRepository.GetOrderByIdAsync(orderId);
+
+                if (order != null)
+                {
+                    orders.Add(order);
+                }
+                else
+                {
+                    _logger.LogWarning($"Es wurde keine Order mit der Id '{orderId}' gefunden.");
+                }
+            }
+            catch (RepositoryException ex)
+            {
+                _logger.LogError(ex,
+                    $"Repository-Exception beim abrufen der Order mit der Id '{orderId}'.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    $"Unerwarteter Fehler beim abrufen der Order mit der Id '{orderId}'.");
+                throw new OrderServiceException(
+                    $"Unerwarteter Fehler beim abrufen der Order mit der Id '{orderId}'.",
+                    ex);
+            }
+        }
+
+        return orders;
+    }
+    
+    public async Task UpdateOrderExportedValue(List<Order> orders, bool exported)
+    {
+        foreach (var order in orders)
+        {
+            try
+            {
+                order.Exported = exported;
+                await _orderRepository.UpdateOrderAsync(order);
+            }
+            catch (RepositoryException ex)
+            {
+                _logger.LogError(ex,
+                    $"Repository-Exception beim aktualisieren der Order mit der Id '{order.Id}'.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    $"Unerwarteter Fehler beim aktualisieren der Order mit der Id '{order.Id}'.");
+                throw new OrderServiceException(
+                    $"Unerwarteter Fehler beim aktualisieren der Order mit der Id '{order.Id}'.",
+                    ex);
+            }
+        }
+    }
 }
 

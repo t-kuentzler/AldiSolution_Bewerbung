@@ -18,4 +18,7 @@ public interface IOrderService
 
     Task<bool> ProcessOrderEntriesCancellationAsync(int orderId, string orderCode,
         Dictionary<int, CancelOrderEntryModel> cancelledEntries);
+
+    Task<List<Order>> GetOrdersByIds(List<int> selectedOrders);
+    Task UpdateOrderExportedValue(List<Order> orders, bool exported);
 }
