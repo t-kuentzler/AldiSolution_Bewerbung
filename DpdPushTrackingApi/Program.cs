@@ -16,6 +16,7 @@ public class Program
 
         // Add services to the container.
         builder.Services.AddAuthorization();
+        builder.Services.AddControllers();
 
         // Load shared configurations
         var sharedConfigPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
@@ -88,10 +89,13 @@ public class Program
         app.UseHttpsRedirection();
 
         app.UseAuthorization();
+        app.MapControllers();
 
         // Add rate limiting middleware globally
         app.UseRateLimiter();
 
+        app.UseRouting();
+        
         app.Run();
     }
 }
