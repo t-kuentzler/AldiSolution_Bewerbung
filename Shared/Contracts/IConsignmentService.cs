@@ -20,5 +20,6 @@ public interface IConsignmentService
     Task<List<Consignment>> GetAllConsignmentsByStatusAsync(string status);
     bool AreAllConsignmentsCancelled(Order? order);
     Task<ConsignmentEntry?> GetConsignmentEntryByIdAsync(int consignmentEntryId);
+    Task UpdateConsignmentEntryQuantityAsync(ConsignmentEntry? consignmentEntry, ReturnEntryModel returnEntryModel);
 
 }

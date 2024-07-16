@@ -502,4 +502,53 @@ public class ConsignmentService : IConsignmentService
                 ex);
         }    
     }
+    
+    public async Task UpdateConsignmentEntryQuantityAsync(ConsignmentEntry? consignmentEntry, ReturnEntryModel returnEntryModel)
+    {
+        if (consignmentEntry == null)
+        {
+            _logger.LogError($"'{nameof(consignmentEntry)}' darf nicht null sein.");
+            throw new ConsignmentEntryIsNullException(nameof(consignmentEntry));
+        }
+
+        if (returnEntryModel == null)
+        {
+            _logger.LogError($"'{nameof(returnEntryModel)}' darf nicht null sein.");
+            throw new ReturnEntryIsNullException(nameof(returnEntryModel));
+        }
+
+        if (returnEntryModel.ReturnQuantity >= consignmentEntry.Quantity)
+        {
+            consignmentEntry.CancelledOrReturnedQuantity = consignmentEntry.Quantity; // Position komplett Stornieren
+        }
+        else
+        {
+            consignmentEntry.CancelledOrReturnedQuantity += returnEntryModel.ReturnQuantity; // Menge der Position erhöhen
+        }
+
+        try
+        {
+            _logger.LogInformation(
+                $"Es wird versucht, die Quantity des ConsignmentEntry mit der Id '{consignmentEntry.Id}' in der Datenbank zu aktualisieren.");
+
+            await _consignmentRepository.UpdateConsignmentEntryAsync(consignmentEntry);
+
+            _logger.LogInformation(
+                $"Es wurde erfolgreich die Quantity des ConsignmentEntry mit der Id '{consignmentEntry.Id}' in der Datenbank aktualisiert.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{consignmentEntry.Id}' in der Datenbank.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{consignmentEntry.Id}' in der Datenbank.");
+            throw new ConsignmentServiceException(
+                $"Unerwarteter Fehler beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{consignmentEntry.Id}' in der Datenbank.",
+                ex);
+        }
+    }
 }
