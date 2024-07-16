@@ -293,4 +293,68 @@ public class ConsignmentService : IConsignmentService
             throw;
         }
     }
+    
+    public async Task<Consignment?> GetShippedConsignmentByTrackingIdAsync(string trackingId)
+    {
+        try
+        {
+            var consignment = await _consignmentRepository.GetShippedConsignmentByTrackingIdAsync(trackingId);
+
+            return consignment;
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim abrufen des Consignment mit der TrackingId '{trackingId}'.");
+            return new Consignment();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim abrufen des Consignment mit der TrackingId '{trackingId}'.");
+            return new Consignment();
+        }
+    }
+    
+    public async Task<bool> UpdateConsignmentStatusAsync(string newStatus, string trackingId)
+    {
+        try
+        {
+            string status;
+
+            if (newStatus.Equals(SharedStatus.delivery_customer) || newStatus.Equals(SharedStatus.pickup_by_consignee))
+            {
+                status = SharedStatus.Delivered;
+            }
+            else if (newStatus.Equals(SharedStatus.error_return) ||
+                     newStatus.Equals(SharedStatus.no_pickup_by_consignee) ||
+                     newStatus.Equals(SharedStatus.error_pickup))
+            {
+                status = SharedStatus.Cancelled;
+            }
+            else
+            {
+                return false;
+            }
+
+            await _consignmentRepository.UpdateConsignmentStatusByTrackingIdAsync(status, trackingId);
+
+            _logger.LogInformation(
+                $"Für das Consignment mit der TrackingId '{trackingId}' wurde der Status in der Datenbank erfolgreich auf '{status}' aktualisiert.");
+
+            return true;
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Consignment mit der TrackingId '{trackingId}'.");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren des Consignment mit der TrackingId '{trackingId}'.");
+            return false;
+        }
+    }
 }

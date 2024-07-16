@@ -149,4 +149,49 @@ public class ConsignmentRepository : IConsignmentRepository
                 ex);
         }
     }
+    
+    public async Task<Consignment?> GetShippedConsignmentByTrackingIdAsync(string trackingId)
+    {
+        try
+        {
+            var consignment = await _applicationDbContext.Consignment
+                .Include(c => c.ConsignmentEntries)
+                .Include(c => c.ShippingAddress)
+                .FirstOrDefaultAsync(c => c.TrackingId == trackingId && c.Status == "SHIPPED");
+
+            return consignment; // Null zurückgeben, wenn kein Eintrag gefunden wird oder der Status nicht "SHIPPED" ist
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim abrufen der Consignments mit der TrackingId '{trackingId}' und dem Status 'SHIPPED'.",
+                ex);
+        }
+    }
+    
+    public async Task UpdateConsignmentStatusByTrackingIdAsync(string newStatus, string trackingId)
+    {
+        try
+        {
+            var consignments = await _applicationDbContext.Consignment.Where(c => c.TrackingId == trackingId).ToListAsync();
+
+            if (!consignments.Any() || string.IsNullOrEmpty(newStatus))
+            {
+                return;
+            }
+
+            foreach (var consignment in consignments)
+            {
+                consignment.Status = newStatus;
+            }
+
+            await _applicationDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren des Status für alle Consignments mit der TrackingId '{trackingId}'.",
+                ex);
+        }
+    }
 }
