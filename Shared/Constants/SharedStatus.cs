@@ -36,8 +36,16 @@ public class SharedStatus
     public const string PostOffice = "POST_OFFICE";
     public const string Default = "DEFAULT";
   
+    //Dhl
     public const string Dhl = "DHL";
     public const string delivered = "delivered";
     public const string failure = "failure";
+    
+    //Dpd
+    public const string delivery_customer = "delivery_customer";
+    public const string pickup_by_consignee = "pickup_by_consignee";
+    public const string error_return = "error_return";
+    public const string no_pickup_by_consignee = "no_pickup_by_consignee";
+    public const string error_pickup = "error_pickup";
     
 }
