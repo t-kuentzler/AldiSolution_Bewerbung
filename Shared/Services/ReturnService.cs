@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using FluentValidation;
 using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
@@ -17,10 +18,13 @@ public class ReturnService : IReturnService
     private readonly IOrderService _orderService;
     private readonly IQuantityCheckService _quantityCheckService;
     private readonly IOAuthClientService _oAuthClientService;
+    private readonly IValidatorWrapper<Return> _returnValidator;
+    private readonly IConsignmentService _consignmentService;
 
     public ReturnService(ILogger<ReturnService> logger, IReturnRepository returnRepository,
         IRmaNumberGenerator rmaNumberGenerator, IOrderService orderService,
-        IQuantityCheckService quantityCheckService, IOAuthClientService oAuthClientService)
+        IQuantityCheckService quantityCheckService, IOAuthClientService oAuthClientService,
+        IValidatorWrapper<Return> returnValidator, IConsignmentService consignmentService)
     {
         _logger = logger;
         _returnRepository = returnRepository;
@@ -28,6 +32,8 @@ public class ReturnService : IReturnService
         _orderService = orderService;
         _quantityCheckService = quantityCheckService;
         _oAuthClientService = oAuthClientService;
+        _returnValidator = returnValidator;
+        _consignmentService = consignmentService;
     }
 
     public List<Return> ParseReturnResponseToReturnObject(ReturnResponse returnResponse)
@@ -323,5 +329,139 @@ public class ReturnService : IReturnService
             orderCode = order.Code,
             rma = _rmaNumberGenerator.GenerateRma(order.Code),
         };
+    }
+    
+    public async Task ProcessManualReturnAsync(int orderId, ManualReturnResponse manualReturnResponse, Dictionary<int, ReturnEntryModel> returnEntries)
+    {
+        try
+        {
+            var parsedReturn = await ParseManualReturnToReturnObject(manualReturnResponse);
+            
+            await ProcessReturnEntriesAsync(orderId, returnEntries);
+            await CreateReturnAsync(parsedReturn);
+        }
+        catch (ValidationException)
+        {
+            throw;
+        }
+        catch (RepositoryException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ReturnServiceException(
+                $"Fehler beim Verarbeiten der manuellen Retoure für {nameof(orderId)} '{orderId}'.", ex);
+        }
+    }
+    
+    private async Task<Return> ParseManualReturnToReturnObject(ManualReturnResponse manualReturnResponse)
+    {
+        try
+        {
+            var returnObj = new Return
+            {
+                OrderCode = manualReturnResponse.orderCode,
+                InitiationDate = manualReturnResponse.initiationDate,
+                AldiReturnCode = manualReturnResponse.aldiReturnCode,
+                Rma = manualReturnResponse.rma,
+                Status = SharedStatus.InProgress,
+                CustomerInfo = manualReturnResponse.customerInfo != null
+                    ? new CustomerInfo
+                    {
+                        EmailAddress = manualReturnResponse.customerInfo.emailAddress,
+                        PhoneNumber = manualReturnResponse.customerInfo.phoneNumber ?? String.Empty,
+                        Address = manualReturnResponse.customerInfo.address != null
+                            ? new Address
+                            {
+                                Type = manualReturnResponse.customerInfo.address.type ?? String.Empty,
+                                SalutationCode = manualReturnResponse.customerInfo.address.salutationCode ??
+                                                 String.Empty,
+                                FirstName = manualReturnResponse.customerInfo.address.firstName ?? String.Empty,
+                                LastName = manualReturnResponse.customerInfo.address.lastName ?? String.Empty,
+                                StreetName = manualReturnResponse.customerInfo.address.streetName ?? String.Empty,
+                                StreetNumber = manualReturnResponse.customerInfo.address.streetNumber ?? String.Empty,
+                                Remarks = manualReturnResponse.customerInfo.address.remarks ?? String.Empty,
+                                PostalCode = manualReturnResponse.customerInfo.address.postalCode ?? String.Empty,
+                                Town = manualReturnResponse.customerInfo.address.town ?? String.Empty,
+                                PackstationNumber = manualReturnResponse.customerInfo.address.packstationNumber ??
+                                                    String.Empty,
+                                PostNumber = manualReturnResponse.customerInfo.address.postNumber ?? String.Empty,
+                                PostOfficeNumber = manualReturnResponse.customerInfo.address.postOfficeNumber ??
+                                                   String.Empty,
+                                CountryIsoCode = manualReturnResponse.customerInfo.address.countryIsoCode ??
+                                                 String.Empty
+                            }
+                            : new Address()
+                    }
+                    : new CustomerInfo(),
+                ReturnEntries = new List<ReturnEntry>()
+            };
+
+            if (manualReturnResponse.entries != null)
+            {
+                foreach (var manualEntry in manualReturnResponse.entries)
+                {
+                    var entry = new ReturnEntry
+                    {
+                        Reason = manualEntry.reason ?? string.Empty,
+                        Notes = manualEntry.notes ?? string.Empty,
+                        OrderEntryNumber = manualEntry.orderEntryNumber,
+                        Quantity = manualEntry.quantity,
+                        EntryCode = manualEntry.entryCode ?? string.Empty,
+                        Status = manualEntry.status,
+                        CarrierCode = manualEntry.carrierCode ?? string.Empty,
+                        ReturnConsignments = manualEntry.consignments != null
+                            ? manualEntry.consignments.Select(manualConsignment => new ReturnConsignment
+                            {
+                                ConsignmentCode = manualConsignment.consignmentCode,
+                                Quantity = manualConsignment.quantity,
+                                Carrier = manualConsignment.carrier ?? string.Empty,
+                                CompletedDate = manualConsignment.completedDate
+                            }).ToList()
+                            : new List<ReturnConsignment>()
+                    };
+
+                    returnObj.ReturnEntries.Add(entry);
+                }
+            }
+
+            await _returnValidator.ValidateAndThrowAsync(returnObj);
+
+            return returnObj;
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(ex, $"Validierungsfehler für Return: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unerwarteter Fehler beim Parsen der manuellen Rückgabe.");
+            throw new ReturnServiceException("Unerwarteter Fehler beim Parsen der manuellen Rückgabe.", ex);
+        }
+    }
+    
+    //Entry Quantity anpassen damit nicht zu viel returned werden kann
+    private async Task ProcessReturnEntriesAsync(int orderId, Dictionary<int, ReturnEntryModel> returnEntries)
+    {
+        var order = await _orderService.GetOrderByIdAsync(orderId);
+        foreach (var entry in returnEntries)
+        {
+            var consignmentEntry = await _consignmentService.GetConsignmentEntryByIdAsync(entry.Value.ConsignmentEntryId);
+            await _consignmentService.UpdateConsignmentEntryQuantityAsync(consignmentEntry, entry.Value);
+        }
+        
+        try
+        {
+            await _consignmentService.ProcessConsignmentStatusesAsync(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Fehler bei der Verarbeitung der Consignment-Status für die Bestellung mit der Id '{order.Id}'.");
+            throw new ReturnServiceException(
+                $"Fehler bei der Verarbeitung der Consignment-Status für die Bestellung mit der Id '{order.Id}'.", ex);
+        }
     }
 }
