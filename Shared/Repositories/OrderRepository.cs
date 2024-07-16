@@ -90,4 +90,40 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
+    
+    public async Task UpdateOrderStatusByOrderCodeAsync(string orderCode, string newStatus)
+    {
+        try
+        {
+            var order = await _applicationDbContext.Order.FirstOrDefaultAsync(o => o.Code == orderCode);
+            if (order != null)
+            {
+                order.Status = newStatus;
+                _applicationDbContext.Order.Update(order);
+                await _applicationDbContext.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderCode: '{orderCode}'.",
+                ex);
+        }
+    }
+    
+    public async Task<List<Order>> GetOrdersWithStatusAsync(string status)
+    {
+        try
+        {
+            return await _applicationDbContext.Order
+                .Include(o => o.Entries)
+                .ThenInclude(entry => entry.DeliveryAddress)
+                .Include(o => o.Consignments) // Consignments mit einschließen
+                .Where(o => o.Status == status)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Status: '{status}'.", ex);
+        }
+    }
 }

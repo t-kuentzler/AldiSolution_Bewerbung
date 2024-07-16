@@ -30,30 +30,6 @@ public class OrderService : IOrderService
         _orderRepository = orderRepository;
     }
 
-    public async Task ProcessOpenOrdersAsync()
-    {
-        try
-        {
-            await _accessTokenService.EnsureTokenDataExists();
-            var orders = await _oAuthClientService.GetApiOrdersAsync();
-
-            if (orders.Orders.Count == 0)
-            {
-                _logger.LogInformation("Es sind keine offenen Bestellungen zum Abrufen verfügbar.");
-                return;
-            }
-
-            foreach (var order in orders.Orders)
-            {
-                await ProcessSingleOrderAsync(order);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ein Fehler ist beim Abrufen der offenen Bestellungen aufgetreten.");
-        }
-    }
-
     public async Task ProcessSingleOrderAsync(Order order)
     {
         try
@@ -240,6 +216,47 @@ public class OrderService : IOrderService
             var updateOrderStatusException = new UpdateOrderStatusException(orderCode, ex);
             _logger.LogError(updateOrderStatusException.Message);
             return false;
+        }
+    }
+    
+    public async Task<List<Order>> GetOrdersByStatusAsync(string status)
+    {
+        try
+        {
+            return await _orderRepository.GetOrdersWithStatusAsync(status);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim Abrufen von allen Bestellungen mit dem Status '{status}'.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim Abrufen von allen Bestellungen mit dem Status '{status}'.");
+        }
+
+        return new List<Order>();
+    }
+    
+    public async Task UpdateOrderStatusByOrderCodeAsync(string orderCode, string newStatus)
+    {
+        try
+        {
+            await _orderRepository.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus);
+
+            _logger.LogInformation(
+                $"Der Status der Bestellung mit dem OrderCode '{orderCode}' wurde in der Datenbank erfolgreich auf '{newStatus}' aktualisiert.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Status '{newStatus}' für die Bestellung mit dem OrderCode '{orderCode}'.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren des Status '{newStatus}' für die Bestellung mit dem OrderCode '{orderCode}'.");
         }
     }
 }
