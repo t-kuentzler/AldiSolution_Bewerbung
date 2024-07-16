@@ -14,4 +14,6 @@ public interface IReturnService
 
     Task ProcessManualReturnAsync(int orderId, ManualReturnResponse manualReturnResponse,
         Dictionary<int, ReturnEntryModel> returnEntries);
+
+    Task<List<Return>> SearchReturnsAsync(SearchTerm searchTerm, List<string> statuses);
 }

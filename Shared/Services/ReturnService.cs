@@ -20,11 +20,13 @@ public class ReturnService : IReturnService
     private readonly IOAuthClientService _oAuthClientService;
     private readonly IValidatorWrapper<Return> _returnValidator;
     private readonly IConsignmentService _consignmentService;
+    private readonly IValidatorWrapper<SearchTerm> _searchTermValidator;
 
     public ReturnService(ILogger<ReturnService> logger, IReturnRepository returnRepository,
         IRmaNumberGenerator rmaNumberGenerator, IOrderService orderService,
         IQuantityCheckService quantityCheckService, IOAuthClientService oAuthClientService,
-        IValidatorWrapper<Return> returnValidator, IConsignmentService consignmentService)
+        IValidatorWrapper<Return> returnValidator, IConsignmentService consignmentService,
+        IValidatorWrapper<SearchTerm> searchTermValidator)
     {
         _logger = logger;
         _returnRepository = returnRepository;
@@ -34,6 +36,7 @@ public class ReturnService : IReturnService
         _oAuthClientService = oAuthClientService;
         _returnValidator = returnValidator;
         _consignmentService = consignmentService;
+        _searchTermValidator = searchTermValidator;
     }
 
     public List<Return> ParseReturnResponseToReturnObject(ReturnResponse returnResponse)
@@ -462,6 +465,59 @@ public class ReturnService : IReturnService
                 $"Fehler bei der Verarbeitung der Consignment-Status für die Bestellung mit der Id '{order.Id}'.");
             throw new ReturnServiceException(
                 $"Fehler bei der Verarbeitung der Consignment-Status für die Bestellung mit der Id '{order.Id}'.", ex);
+        }
+    }
+    
+    public async Task<List<Return>> SearchReturnsAsync(SearchTerm searchTerm, List<string> statuses)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm.value))
+        {
+            return new List<Return>();
+        }
+
+        if (statuses == null || !statuses.Any())
+        {
+            _logger.LogError($"'{nameof(statuses)}' darf nicht null oder leer sein.");
+            throw new ArgumentNullException(nameof(statuses), $"'{nameof(statuses)}' darf nicht null oder leer sein.");
+        }
+
+        try
+        {
+            await _searchTermValidator.ValidateAndThrowAsync(searchTerm);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(ex,
+                $"Es ist ein Validierungsfehler aufgetreten beim Suchen von Returns mit dem searchTerm '{searchTerm.value}'.");
+            throw;
+        }
+
+        var allReturns = new List<Return>();
+
+        try
+        {
+            foreach (var status in statuses)
+            {
+                var returnsForStatus = await _returnRepository.SearchReturnsAsync(searchTerm, status);
+                // Hinzufügen der Ergebnisse zur Gesamtliste, Duplikate vermeiden
+                allReturns.AddRange(returnsForStatus.Where(r => !allReturns.Any(ar => ar.Id == r.Id)));
+            }
+
+            return allReturns;
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim Suchen von Returns mit dem Suchbegriff '{searchTerm.value}' und Status '{string.Join(", ", statuses)}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim Suchen von Returns mit dem Suchbegriff '{searchTerm.value}' und Status '{string.Join(", ", statuses)}'.");
+            throw new ReturnServiceException(
+                $"Unerwarteter Fehler beim Suchen von Returns mit dem Suchbegriff '{searchTerm.value}' und Status '{string.Join(", ", statuses)}'.",
+                ex);
         }
     }
 }
