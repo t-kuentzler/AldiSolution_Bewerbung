@@ -326,12 +326,6 @@ public class ConsignmentService : IConsignmentService
             {
                 status = SharedStatus.Delivered;
             }
-            else if (newStatus.Equals(SharedStatus.error_return) ||
-                     newStatus.Equals(SharedStatus.no_pickup_by_consignee) ||
-                     newStatus.Equals(SharedStatus.error_pickup))
-            {
-                status = SharedStatus.Cancelled;
-            }
             else
             {
                 return false;
