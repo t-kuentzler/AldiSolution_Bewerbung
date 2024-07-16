@@ -357,6 +357,37 @@ public class ConsignmentService : IConsignmentService
         }
     }
     
+    public async Task<bool> UpdateConsignmentStatusAsync(string newStatus, Consignment consignment)
+    {
+        try
+        {
+            _logger.LogInformation(
+                $"Es wird versucht den Status der Consignment mit der Id '{consignment.Id}' in der Datenbank auf '{newStatus}' zu aktualisiert.");
+
+            consignment.Status = newStatus;
+            await _consignmentRepository.UpdateConsignmentAsync(consignment);
+
+            _logger.LogInformation(
+                $"Der Status der Consignment mit der Id '{consignment.Id}' wurde in der Datenbank erfolgreich auf '{newStatus}' aktualisiert.");
+
+            return true;
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Status '{consignment.Status}' für das Consignment mit der Id '{consignment.Id}' in der Datenbank.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisierung des Status der Lieferung mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}' auf '{consignment.Status}'.");
+            throw new ConsignmentServiceException(
+                $"Unerwarteter Fehler beim aktualisierung des Status der Lieferung mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}' auf '{consignment.Status}'.",
+                ex);
+        }
+    }
+    
     public async Task<List<Consignment>> SearchConsignmentsAsync(SearchTerm searchTerm, string status)
     {
         if (string.IsNullOrWhiteSpace(searchTerm.value))
@@ -426,5 +457,21 @@ public class ConsignmentService : IConsignmentService
             throw new ConsignmentServiceException(
                 $"Unerwarteter Fehler beim Abrufen von allen Consignments mit dem Status '{status}'.", ex);
         }
+    }
+    
+    public bool AreAllConsignmentsCancelled(Order? order)
+    {
+        if (order == null)
+        {
+            _logger.LogError("Order ist null.");
+            throw new OrderIsNullException(nameof(order));
+        }
+
+        if (order.Consignments.All(consignment => consignment.Status == SharedStatus.Cancelled))
+        {
+            return true;
+        }
+
+        return false;
     }
 }

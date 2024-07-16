@@ -15,7 +15,9 @@ public interface IConsignmentService
     Task<Consignment?> GetConsignmentByConsignmentIdAsync(int consignmentId);
     Task<Consignment?> GetShippedConsignmentByTrackingIdAsync(string trackingId);
     Task<bool> UpdateDpdConsignmentStatusAsync(string newStatus, string trackingId);
+    Task<bool> UpdateConsignmentStatusAsync(string newStatus, Consignment consignment);
     Task<List<Consignment>> SearchConsignmentsAsync(SearchTerm searchTerm, string status);
     Task<List<Consignment>> GetAllConsignmentsByStatusAsync(string status);
+    bool AreAllConsignmentsCancelled(Order? order);
 
 }
