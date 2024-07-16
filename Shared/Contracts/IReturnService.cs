@@ -8,4 +8,7 @@ public interface IReturnService
     List<Return> ParseReturnResponseToReturnObject(ReturnResponse returnResponse);
     Task<bool> CreateReturnAsync(Return returnObj);
     ReturnInProgressRequest? ParseReturnToReturnInProgressRequest(Return returnObj);
+
+    Task<ReturnProcessingResult> ProcessReturn(int orderId,
+        Dictionary<int, ReturnEntryModel> returnEntries);
 }
