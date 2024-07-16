@@ -18,6 +18,7 @@ public class SharedStatus
     
     public const string DamagedIntransit = "DAMAGEDINTRANSIT";
     public const string DontLikeAnyMore = "DONTLIKEANYMORE";
+    public const string ItemToBigOrSmall = "ITEMTOOBIGORSMALL";
     public const string FoundCheaperPrice = "FOUNDCHEAPERPRICE";
     public const string GoodWill = "GOODWILL";
     public const string ItemBrokenOrDamaged = "ITEMBROKENORDAMAGED";
@@ -26,9 +27,9 @@ public class SharedStatus
     public const string ManufacturingFault = "MANUFACTURINGFAULT";
     public const string MisPickItemMissing = "MISPICKITEMMISSING";
     public const string MisPickWrongItemDelivered = "MISPICKWRONGITEMDELIVERED";
-    public const string MissingPartsOrAccessories = "MISSINGPARTSORACCESSORIES";
+    public const string MissingPartsOrAccessoriesMissing = "MISSINGPARTSORACCESSORIESMISSING";
     public const string PriceMatch = "PRICEMATCH";
-    public const string ShippingPackaging = "SHIPPINGPACKAGING";
+    public const string ShippingPackagingDamaged = "SHIPPINGPACKAGINGDAMAGED";
     public const string SiteError = "SITEERROR";
     public const string WrongDescription = "WRONGDESCRIPTION";
     
