@@ -287,5 +287,66 @@ public class OrderService : IOrderService
                 ex);
         }
     }
+    
+    public async Task<List<Order>> GetAllOrdersByStatusAsync(string status)
+    {
+        if (string.IsNullOrEmpty(status))
+        {
+            _logger.LogError($"'{nameof(status)}' darf nicht null oder leer sein.");
+            throw new ArgumentException($"'{nameof(status)}' darf nicht null oder leer sein.", nameof(status));
+        }
+
+        try
+        {
+            return await _orderRepository.GetOrdersWithStatusAsync(status);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim Abrufen von allen Bestellungen mit dem Status '{status}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim Abrufen von allen Bestellungen mit dem Status '{status}'.");
+            throw new OrderServiceException(
+                $"Unerwarteter Fehler beim Abrufen von allen Bestellungen mit dem Status '{status}'.", ex);
+        }
+    }
+    
+    public async Task<Order> GetOrderByIdAsync(int orderId)
+    {
+        if (orderId <= 0)
+        {
+            _logger.LogError($"'{nameof(orderId)}' muss größer als 0 sein.");
+            throw new ArgumentException($"'{nameof(orderId)}' muss größer als 0 sein.");
+        }
+
+        Order? order = null;
+        try
+        {
+            order = await _orderRepository.GetOrderByIdAsync(orderId);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex, $"Repository-Exception beim Abrufen von Bestellung mit der Id '{orderId}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Unerwarteter Fehler beim Abrufen von Bestellung mit der Id '{orderId}'.");
+            throw new OrderServiceException(
+                $"Unerwarteter Fehler beim Abrufen von Bestellung mit der Id '{orderId}'.", ex);
+        }
+
+        if (order == null)
+        {
+            _logger.LogError($"{nameof(order)} mit ID {orderId} ist null.");
+            throw new OrderIsNullException($"Keine Bestellung mit ID {orderId} gefunden.");
+        }
+
+        return order;
+    }
 }
 

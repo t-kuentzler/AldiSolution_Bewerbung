@@ -146,4 +146,23 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
+    
+    public async Task<Order?> GetOrderByIdAsync(int orderId)
+    {
+        try
+        {
+            return await _applicationDbContext.Order
+                .Include(o => o.Consignments)
+                .ThenInclude(consignment => consignment.ConsignmentEntries)
+                .Include(o => o.Consignments)
+                .ThenInclude(c => c.ShippingAddress)
+                .Include(o => o.Entries)
+                .ThenInclude(entry => entry.DeliveryAddress)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderId: '{orderId}'", ex);
+        }
+    }
 }
