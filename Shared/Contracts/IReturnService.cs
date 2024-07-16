@@ -11,4 +11,7 @@ public interface IReturnService
 
     Task<ReturnProcessingResult> ProcessReturn(int orderId,
         Dictionary<int, ReturnEntryModel> returnEntries);
+
+    Task ProcessManualReturnAsync(int orderId, ManualReturnResponse manualReturnResponse,
+        Dictionary<int, ReturnEntryModel> returnEntries);
 }
