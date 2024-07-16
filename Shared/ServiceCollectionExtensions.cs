@@ -82,10 +82,10 @@ namespace Shared
 
             
             // OAuth Client Service Factory
-            services.AddSingleton<IOAuthClientServiceFactory, OAuthClientServiceFactory>();
+            services.AddScoped<IOAuthClientServiceFactory, OAuthClientServiceFactory>();
 
             // Registering the OAuthClientService with factory creation method
-            services.AddScoped(provider =>
+            services.AddScoped<IOAuthClientService>(provider =>
                 provider.GetRequiredService<IOAuthClientServiceFactory>().Create());
 
             // Validator Wrapper
