@@ -25,6 +25,9 @@ class Program
         var dhlTrackingStatusService = host.Services.GetRequiredService<IDhlTrackingStatusService>();
         await dhlTrackingStatusService.ReadAndUpdateTrackingStatusAsync();
         
+        var shippedOrdersProcessingService = host.Services.GetRequiredService<IShippedOrdersProcessingService>();
+        await shippedOrdersProcessingService.CheckAndProcessShippedOrders();
+        
         Log.CloseAndFlush();
     }
     
