@@ -51,4 +51,23 @@ public class ReturnRepository : IReturnRepository
                 ex);
         }
     }
+    
+    public async Task<List<Return>> GetReturnsWithStatusAsync(string status)
+    {
+        try
+        {
+            return await _applicationDbContext.Return
+                .Include(r => r.CustomerInfo)
+                .ThenInclude(entry => entry.Address)
+                .Include(r => r.ReturnEntries)
+                .ThenInclude(entry => entry.ReturnConsignments)
+                .ThenInclude(c => c.Packages)
+                .Where(o => o.Status == status)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Status: '{status}'", ex);
+        }
+    }
 }

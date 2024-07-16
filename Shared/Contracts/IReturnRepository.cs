@@ -7,4 +7,5 @@ public interface IReturnRepository
 {
     Task<bool> CreateReturnAsync(Return returnObj);
     Task<List<Return>> SearchReturnsAsync(SearchTerm searchTerm, string status);
+    Task<List<Return>> GetReturnsWithStatusAsync(string status);
 }
