@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Shared.Contracts;
+using Shared.Models;
 
 namespace DpdPushTrackingApi.Controllers;
 
@@ -6,14 +9,14 @@ namespace DpdPushTrackingApi.Controllers;
 [ApiController]
 public class TrackingPushController : ControllerBase
 {
-    private readonly ITrackingDataService _trackingDataService;
+    private readonly IDpdTrackingDataService _dpdTrackingDataService;
     private readonly ILogger<TrackingPushController> _logger;
 
 
-    public TrackingPushController(ITrackingDataService trackingDataService,
+    public TrackingPushController(IDpdTrackingDataService dpdTrackingDataService,
         ILogger<TrackingPushController> logger)
     {
-        _trackingDataService = trackingDataService;
+        _dpdTrackingDataService = dpdTrackingDataService;
         _logger = logger;
     }
 
@@ -31,7 +34,7 @@ public class TrackingPushController : ControllerBase
             string trackingDataJson = JsonConvert.SerializeObject(trackingData);
             _logger.LogInformation($"Empfangene Tracking-Daten: {trackingDataJson}");
                 
-            await _trackingDataService.ProcessTrackingData(trackingData);
+            await _dpdTrackingDataService.ProcessTrackingData(trackingData);
             var responseXml = $"<push><pushid>{trackingData.pushid}</pushid><status>OK</status></push>";
             return Ok(responseXml);
         }
