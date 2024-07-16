@@ -71,6 +71,7 @@ namespace Shared
             services.AddScoped<IDpdTrackingDataService, DpdTrackingDataService>();
             services.AddScoped<IFileService, FileService>();
             services.AddScoped<IQuantityCheckService, QuantityCheckService>();
+            services.AddScoped<ICancellationService, CancellationService>();
 
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
