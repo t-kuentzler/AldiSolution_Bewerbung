@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DhlApiApplication", "DhlApiApplication\DhlApiApplication.csproj", "{80FD96A2-81F3-4F32-BF3E-B45ED8B928AB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DpdPushTrackingApi", "DpdPushTrackingApi\DpdPushTrackingApi.csproj", "{0725FF44-84F9-4F36-81D2-4544E455CFFD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{80FD96A2-81F3-4F32-BF3E-B45ED8B928AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80FD96A2-81F3-4F32-BF3E-B45ED8B928AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80FD96A2-81F3-4F32-BF3E-B45ED8B928AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0725FF44-84F9-4F36-81D2-4544E455CFFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0725FF44-84F9-4F36-81D2-4544E455CFFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0725FF44-84F9-4F36-81D2-4544E455CFFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0725FF44-84F9-4F36-81D2-4544E455CFFD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
