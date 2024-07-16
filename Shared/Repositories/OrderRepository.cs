@@ -184,4 +184,31 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
+    
+    public async Task UpdateOrderEntryAsync(OrderEntry orderEntry)
+    {
+        try
+        {
+            _applicationDbContext.Entry(orderEntry).State = EntityState.Modified;
+            await _applicationDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderEntry: '{orderEntry}'",
+                ex);
+        }
+    }
+    
+    public async Task UpdateOrderAsync(Order order)
+    {
+        try
+        {
+            _applicationDbContext.Entry(order).State = EntityState.Modified;
+            await _applicationDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Order: '{order}'", ex);
+        }
+    }
 }
