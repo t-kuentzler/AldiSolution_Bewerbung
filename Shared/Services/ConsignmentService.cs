@@ -551,4 +551,64 @@ public class ConsignmentService : IConsignmentService
                 ex);
         }
     }
+    
+    public async Task ProcessConsignmentStatusesAsync(Order order)
+    {
+        if (order == null)
+        {
+            _logger.LogError($"'{nameof(order)}' darf nicht null sein.");
+            throw new OrderIsNullException(nameof(order));
+        }
+
+        if (order.Consignments == null)
+        {
+            _logger.LogError($"Die Consignments der Order '{nameof(order)}' dürfen nicht null sein.");
+            throw new ConsignmentIsNullException("Die Consignments der Order dürfen nicht null sein.");
+        }
+        
+        if (order.Consignments.All(AreAllConsignmentEntriesReturned))
+        {
+            foreach (var consignment in order.Consignments)
+            {
+                await ReturnWholeConsignment(consignment);
+            }
+        }
+    }
+    
+    private bool AreAllConsignmentEntriesReturned(Consignment? consignment)
+    {
+        if (consignment == null)
+        {
+            return false;
+        }
+        return consignment.ConsignmentEntries.All(e => e.Quantity == 0);
+    }
+    
+    private async Task ReturnWholeConsignment(Consignment consignment)
+    {
+        consignment.Status = SharedStatus.Returned;
+
+        try
+        {
+            _logger.LogInformation(
+                $"Es wird versucht, den Status der gesamten Lieferung mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}' auf '{consignment.Status}' zu aktualisieren.");
+            await _consignmentRepository.UpdateConsignmentAsync(consignment);
+            _logger.LogInformation(
+                $"Die aktualisierung des Status der Lieferung mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}' auf '{consignment.Status}' war erfolgreich.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Status '{consignment.Status}' für das Consignment mit der Id '{consignment.Id}' in der Datenbank.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisierung des Status der Lieferung mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}' auf '{consignment.Status}'.");
+            throw new ConsignmentServiceException(
+                $"Unerwarteter Fehler beim aktualisierung des Status der Lieferung mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}' auf '{consignment.Status}'.",
+                ex);
+        }
+    }
 }
