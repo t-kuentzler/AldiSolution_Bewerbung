@@ -11,8 +11,7 @@ public class TrackingPushController : ControllerBase
 {
     private readonly IDpdTrackingDataService _dpdTrackingDataService;
     private readonly ILogger<TrackingPushController> _logger;
-
-
+    
     public TrackingPushController(IDpdTrackingDataService dpdTrackingDataService,
         ILogger<TrackingPushController> logger)
     {
