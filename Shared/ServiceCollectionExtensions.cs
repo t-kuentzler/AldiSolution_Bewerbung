@@ -79,6 +79,7 @@ namespace Shared
             services.AddSingleton<IFileMapping, FileMapping>();
             services.AddSingleton<IImageLoader, ImageLoader>();
             services.AddSingleton<IStatisticService, StatisticService>();
+            services.AddSingleton<IStatisticRepository, StatisticRepository>();
             
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
