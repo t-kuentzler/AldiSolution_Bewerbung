@@ -106,6 +106,7 @@ namespace Shared
             services.AddTransient<IValidator<ReturnEntry>, ReturnEntryValidator>();
             services.AddTransient<IValidator<ReturnPackage>, ReturnPackageValidator>();
             services.AddTransient<IValidator<Return>, ReturnValidator>();
+            services.AddTransient<IValidator<SearchTerm>, SearchTermValidator>();
             
             services.AddSingleton<SmtpClient>();
 
