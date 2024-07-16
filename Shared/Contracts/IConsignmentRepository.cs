@@ -16,4 +16,5 @@ public interface IConsignmentRepository
     Task<Consignment?> GetShippedConsignmentByTrackingIdAsync(string trackingId);
     Task UpdateConsignmentStatusByTrackingIdAsync(string newStatus, string trackingId);
     Task<List<Consignment>> SearchShippedConsignmentsAsync(SearchTerm searchTerm);
+    Task<List<Consignment>> GetConsignmentsWithStatusAsync(string status);
 }

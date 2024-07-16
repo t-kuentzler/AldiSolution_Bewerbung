@@ -213,4 +213,19 @@ public class ConsignmentRepository : IConsignmentRepository
                 ex);
         }
     }
+    
+    public async Task<List<Consignment>> GetConsignmentsWithStatusAsync(string status)
+    {
+        try
+        {
+            return await _applicationDbContext.Consignment
+                // .Include(c => c.Order)
+                .Where(c => c.Status == status)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Status: '{status}'.", ex);
+        }
+    }
 }

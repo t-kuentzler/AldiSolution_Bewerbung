@@ -400,4 +400,31 @@ public class ConsignmentService : IConsignmentService
                 ex);
         }
     }
+    
+    public async Task<List<Consignment>> GetAllConsignmentsByStatusAsync(string status)
+    {
+        if (string.IsNullOrEmpty(status))
+        {
+            _logger.LogError($"'{nameof(status)}' darf nicht null oder leer sein.");
+            throw new ArgumentException($"'{nameof(status)}' darf nicht null oder leer sein.");
+        }
+
+        try
+        {
+            return await _consignmentRepository.GetConsignmentsWithStatusAsync(status);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim Abrufen von allen Consignments mit dem Status '{status}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim Abrufen von allen Consignments mit dem Status '{status}'.");
+            throw new ConsignmentServiceException(
+                $"Unerwarteter Fehler beim Abrufen von allen Consignments mit dem Status '{status}'.", ex);
+        }
+    }
 }
