@@ -674,7 +674,7 @@ public class OAuthClientService : IOAuthClientService
             var tokenResponse = await _accessTokenService.ValidateAndGetAccessToken();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
 
-            string returnUrl = $"{_settings.BaseUrl}{_settings.GetReturnsEndpoint}";
+            string returnUrl = $"{_settings.BaseUrl}aldivendorwebservices/2.0/DE/vendor/{_settings.VendorId}/returnrequests";
             var response = await client.GetAsync(returnUrl);
 
             if (response.IsSuccessStatusCode)
