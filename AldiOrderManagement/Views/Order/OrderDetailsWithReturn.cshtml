@@ -1,0 +1,212 @@
+@using Shared.Constants
+@model Shared.Entities.Order
+
+@{
+    ViewData["Title"] = "Bestellungsdetails";
+}
+
+<!-- Erfolgsmeldungen, Fehlermeldungen und Validierungsfehler anzeigen -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="container mt-4">
+    <h1>Bestellungsdetails</h1>
+
+    <!-- Bestelldetails-Tabelle -->
+    <table class="table table-hover mb-5">
+        <thead>
+        <tr>
+            <th>Bestellcode</th>
+            <th>Email</th>
+            <th>Telefon</th>
+            <th>Status</th>
+            <th>Erstellt</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>@Model.Code</td>
+            <td>@Model.EmailAddress</td>
+            <td>@Model.Phone</td>
+            <td>@Model.Status</td>
+            <td>@Model.Created</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Lieferungen -->
+    <h1>Lieferungen</h1>
+    <form method="post" asp-controller="Return" asp-action="CreateReturn" asp-route-id="@Model.Id">
+
+        <input type="hidden" name="orderId" value="@Model.Id"/>
+        
+
+        @{
+            int uniqueId = 0; // Startet zähler für eindeutige ID
+        }
+
+        @foreach (var consignment in Model.Consignments)
+        {
+            <div class="card mb-3">
+                <div class="card-header">
+                    <strong>Lieferungscode:</strong> @consignment.VendorConsignmentCode
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Versanddienstl.</th>
+                            <th>Trackinglink</th>
+                            <th>Versanddatum</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>@consignment.Status</td>
+                            <td>@consignment.Carrier</td>
+                            <td><a href="@consignment.TrackingLink" target="_blank">@consignment.TrackingId</a></td>
+                            <td>@consignment.ShippingDate</td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Tabelle für Consignment Entries -->
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th></th>
+                            <th>Artikelnummer</th>
+                            <th>Produktname</th>
+                            <th>Menge</th>
+                            @if (consignment.Status.Equals(SharedStatus.Delivered))
+                            {
+                                <th>Retournierte Menge</th>
+                                <th>Retoure Menge</th>
+                                <th>Grund</th>
+                            }
+
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var entry in consignment.ConsignmentEntries)
+                        {
+                            <tr>
+                                @if (consignment.Status.Equals(SharedStatus.Delivered) && entry.CancelledOrReturnedQuantity < entry.Quantity)
+                                {
+                                    <td>
+                                        <input type="checkbox" name="returnEntries[@uniqueId].IsReturned" value="true"/>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td></td>
+                                }
+                               
+                                <td>@entry.OrderEntry.VendorProductCode</td>
+                                <td>@entry.OrderEntry.ProductName</td>
+                                <td>@entry.Quantity</td>
+                                @if (consignment.Status.Equals(SharedStatus.Delivered))
+                                {
+                                    <td>@entry.CancelledOrReturnedQuantity</td>
+                                    <td>
+                                        <input type="number" name="returnEntries[@uniqueId].ReturnQuantity" min="1" max="@(entry.Quantity - entry.CancelledOrReturnedQuantity)"/>
+                                    </td>
+
+                                    <td>
+                                        <select name="returnEntries[@uniqueId].Reason" class="form-control">
+                                            <option value="" selected>Bitte wählen...</option>
+                                            <option value=@SharedStatus.DamagedIntransit>Auf Transportweg beschädigt</option>
+                                            <option value=@SharedStatus.DontLikeAnyMore>Gefällt nicht mehr</option>
+                                            <option value=@SharedStatus.ItemToBigOrSmall>Artikel zu groß oder klein</option>
+                                            <option value=@SharedStatus.FoundCheaperPrice>Günstigeren Preis entdeckt</option>
+                                            <option value=@SharedStatus.GoodWill>Kulanz</option>
+                                            <option value=@SharedStatus.ItemBrokenOrDamaged>Artikel ist defekt / beschädigt</option>
+                                            <option value=@SharedStatus.LateDelivery>Späte Lieferung</option>
+                                            <option value=@SharedStatus.LostIntransit>Auf Transportweg verloren</option>
+                                            <option value=@SharedStatus.ManufacturingFault>Herstellerfehler</option>
+                                            <option value=@SharedStatus.MisPickItemMissing>Artikel fehlt</option>
+                                            <option value=@SharedStatus.MisPickWrongItemDelivered>Verpasster Link-Deal</option>
+                                            <option value=@SharedStatus.MissingPartsOrAccessoriesMissing>Fehlende Teile / Zubehör fehlt</option>
+                                            <option value=@SharedStatus.PriceMatch>Preisübereinstimmung</option>
+                                            <option value=@SharedStatus.ShippingPackagingDamaged>Versandverpackung beschädigt</option>
+                                            <option value=@SharedStatus.SiteError>Standortfehler</option>
+                                            <option value=@SharedStatus.WrongDescription>Falsche Beschreibung</option>
+                                        </select>
+                                    </td>
+
+                                    <input type="hidden" name="returnEntries[@uniqueId].OrderEntryNumber" value="@entry.OrderEntry.EntryNumber"/>
+                                    <input type="hidden" name="returnEntries[@uniqueId].ConsignmentEntryId" value="@entry.Id"/>
+
+                                }
+                            </tr>
+                            uniqueId++; // Erhöhen Sie die eindeutige ID für das nächste Element
+                        }
+                        </tbody>
+                    </table>
+
+                    <!-- Tabelle für Adressinformationen -->
+                    <table class="table address-table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Typ</th>
+                            <th>Name</th>
+                            <th>Straße</th>
+                            <th>Postleitzahl</th>
+                            <th>Stadt</th>
+                            <th>Ländercode</th>
+                            @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.Packstation))
+                            {
+                                <th>Packstationsnr.</th>
+                                <th>Postnr.</th>
+                            }
+                            @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.PostOffice))
+                            {
+                                <th>Filialnr.</th>
+                            }
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>@consignment.ShippingAddress.Type</td>
+                            <td>@consignment.ShippingAddress.FirstName @consignment.ShippingAddress.LastName</td>
+                            <td>@consignment.ShippingAddress.StreetName @consignment.ShippingAddress.StreetNumber</td>
+                            <td>@consignment.ShippingAddress.PostalCode</td>
+                            <td>@consignment.ShippingAddress.Town</td>
+                            <td>@consignment.ShippingAddress.CountryIsoCode</td>
+                            @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.Packstation))
+                            {
+                                <td>@consignment.ShippingAddress.PackstationNumber</td>
+                                <td>@consignment.ShippingAddress.PostNumber</td>
+                            }
+                            @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.PostOffice))
+                            {
+                                <td>@consignment.ShippingAddress.PostOfficeNumber</td>
+                            }
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        @if (Model.Consignments.Any(c => c.Status == @SharedStatus.Delivered))
+        {
+            <button type="submit" class="btn btn-warning" onclick="return confirmReturnCreation();">Retoure erstellen</button>
+        }
+
+    </form>
+
+</div>
+
+<script>
+    function confirmReturnCreation() {
+            return confirm('Sind Sie sicher, dass Sie eine Retoure für die ausgewählten Artikel erstellen möchten?');
+    }
+</script>

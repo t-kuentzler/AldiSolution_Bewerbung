@@ -1,0 +1,38 @@
+@model IEnumerable<Shared.Models.ProductSalesViewModel>
+
+@{
+ViewData["Title"] = "Sales Statistics";
+}
+
+<h1>Statistik Verkauf</h1>
+
+<table class="table table-hover">
+    <thead>
+    <tr>
+        <th>Produktname</th>
+        <th>Artikelnr.</th>
+        <th>Verkauft</th>
+        <th>Retoure</th>
+        <th>Insgesamt</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model)
+    {
+    <tr>
+        <td>@item.ProductName</td>
+        <td>@item.ArticleNumber</td>
+        <td>@item.Sold</td>
+        <td>@item.Returned</td>
+        <td>@item.TotalSold</td>
+    </tr>
+    }
+
+    <tr>
+        <td colspan="2"><strong>Gesamtsummen</strong></td>
+        <td><strong>@Model.Sum(item => item.Sold)</strong></td>
+        <td><strong>@Model.Sum(item => item.Returned)</strong></td>
+        <td><strong>@Model.Sum(item => item.TotalSold)</strong></td>
+    </tr>
+    </tbody>
+</table>

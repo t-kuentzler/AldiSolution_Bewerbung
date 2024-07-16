@@ -1,0 +1,78 @@
+@model List<Shared.Entities.Consignment>
+
+<!-- Anzeige von Erfolgsmeldungen -->
+    @if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    <!-- Anzeige von Fehlermeldungen -->
+    @if (!string.IsNullOrEmpty(TempData["ErrorMessage"] as string))
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+    
+@{
+    ViewData["Title"] = "Versandte Lieferungen";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h1>@Model.Count Versandte Lieferungen</h1>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+            <div class="col">
+                <form asp-controller="Consignment" asp-action="ShippedConsignments" method="get">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="searchTerm.value" 
+                               value="@ViewBag.SearchTerm" 
+                               placeholder="Suche nach Bestellcode oder Tracking-ID" aria-label="Suche">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-secondary" type="submit">Suchen</button>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    
+    @if (Model.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Lieferungscode</th>
+                <th>Bestellcode</th>
+                <th>Versanddienstl.</th>
+                <th>Versanddatum</th>
+                <th>Status</th>
+                <th>Tracking-ID</th>
+                <th></th> 
+            </tr>
+            </thead>
+            <tbody>
+                @foreach (var consignment in Model)
+                {
+                    <tr>
+                        <td>@consignment.VendorConsignmentCode</td>
+                        <td>@consignment.OrderCode</td>
+                        <td>@consignment.Carrier</td>
+                        <td>@consignment.ShippingDate.ToString("dd.MM.yyyy")</td>
+                        <td>@consignment.Status</td>
+                        <td>@consignment.TrackingId</td>
+                        <td>
+                            <a class="btn btn-primary" asp-controller="Consignment" asp-action="ConsignmentDetails" asp-route-id="@consignment.Id">Details anzeigen</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>Keine Lieferungen gefunden.</p>
+    }
+</div>

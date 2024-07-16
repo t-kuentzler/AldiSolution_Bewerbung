@@ -1,0 +1,76 @@
+@model List<Shared.Entities.Return>
+
+<!-- Anzeige von Erfolgsmeldungen -->
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<!-- Anzeige von Fehlermeldungen -->
+@if (!string.IsNullOrEmpty(TempData["ErrorMessage"] as string))
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+@{
+    ViewData["Title"] = "Offene Retouren";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h1>@Model.Count Offene Retouren</h1>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <form asp-controller="Return" asp-action="RetrievedReturns" method="get">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="searchTerm.value" 
+                           value="@ViewBag.SearchTerm" 
+                           placeholder="Suche nach Bestellcode oder Rma Code" aria-label="Suche">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="submit">Suchen</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    @if (Model.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Bestellcode</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Erstellt</th>
+                <th>Rma</th>
+                <th></th> 
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var returnObj in Model)
+            {
+                <tr>
+                    <td>@returnObj.OrderCode</td>
+                    <td>@returnObj.CustomerInfo.Address?.FirstName @returnObj.CustomerInfo.Address?.LastName</td>
+                    <td>@returnObj.Status</td>
+                    <td>@returnObj.InitiationDate</td>
+                    <td>@returnObj.Rma</td>
+                    
+                    <td>
+                        <a class="btn btn-primary" asp-controller="Return" asp-action="ReturnDetails" asp-route-id="@returnObj.Id">Details anzeigen</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>Keine offenen Retouren gefunden.</p>
+    }
+</div>

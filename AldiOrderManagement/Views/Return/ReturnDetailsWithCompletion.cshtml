@@ -1,0 +1,250 @@
+@using Shared.Constants
+@model Shared.Entities.Return
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<div class="container mt-4">
+    @if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    @if (!string.IsNullOrEmpty(TempData["ErrorMessage"] as string))
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+    
+    <div class="card mb-5">
+        <div class="card-header bg-secondary text-white">
+            <h2>Retouren Details</h2>
+        </div>
+        <div class="card-body bg-light">
+            <!-- Bestellinformationen Tabelle -->
+            <h5>Bestellinformationen</h5>
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Bestellcode</th>
+                    <th>Retoure Erstellt</th>
+                    <th>Rma</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>@Model.OrderCode</td>
+                    <td>@Model.InitiationDate.ToShortDateString()</td>
+                    <td>@Model.Rma</td>
+                    <td>@Model.Status</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- Kundendaten Tabelle -->
+            <h5>Kundendaten</h5>
+            @if (Model.CustomerInfo.Address != null)
+            {
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Typ</th>
+                    <th>Email</th>
+                    <th>Telefon</th>
+                    <th>Name</th>
+                    <th>Straße</th>
+                    <th>Postleitzahl</th>
+                    <th>Stadt</th>
+                    <th>Ländercode</th>
+                    @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.Packstation))
+                    {
+                    <th>Packstationsnr.</th>
+                    <th>Postnr.</th>
+                    }
+                    @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.PostOffice))
+                    {
+                    <th>Filialnr.</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>@Model.CustomerInfo.Address.Type</td>
+                    <td>@Model.CustomerInfo.EmailAddress</td>
+                    <td>@Model.CustomerInfo.PhoneNumber</td>
+                    <td>@Model.CustomerInfo.Address.FirstName @Model.CustomerInfo.Address.LastName</td>
+                    <td>@Model.CustomerInfo.Address.StreetName @Model.CustomerInfo.Address.StreetNumber</td>
+                    <td>@Model.CustomerInfo.Address.PostalCode</td>
+                    <td>@Model.CustomerInfo.Address.Town</td>
+                    <td>@Model.CustomerInfo.Address.CountryIsoCode</td>
+                    @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.Packstation))
+                    {
+                    <td>@Model.CustomerInfo.Address.PackstationNumber</td>
+                    <td>@Model.CustomerInfo.Address.PostNumber</td>
+                    }
+
+                    @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.PostOffice))
+                    {
+                    <td>@Model.CustomerInfo.Address.PostOfficeNumber</td>
+                    }
+                </tr>
+                </tbody>
+            </table>
+            }
+        </div>
+        </div>
+
+    @foreach (var returnEntry in Model.ReturnEntries)
+    {
+        var orderEntry = Model.Order.Entries.FirstOrDefault(e => e.EntryNumber == returnEntry.OrderEntryNumber);
+        
+            @foreach (var consignment in returnEntry.ReturnConsignments)
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>Lieferungscode:</strong> @consignment.ConsignmentCode
+                    </div>
+                    <div class="mb-3">
+
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                @if (consignment.Status.Equals(SharedStatus.Receiving))
+                                {
+                                    <th>Carrier</th>
+                                    <th>Trackinglink</th>
+                                    <th>Status</th>
+                                }
+                                else
+                                {
+                                <th>Trackinglink</th>
+                                <th>Artikelnummer</th>
+                                <th>Produktname</th>
+                                <th>Menge</th>
+                                <th>Grund</th>
+                                <th>Status</th>
+                                }
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var package in consignment.Packages)
+                            {
+                                <tr>
+                                    @if (consignment.Status.Equals(SharedStatus.Receiving))
+                                    {
+                                        <td>@consignment.Carrier</td>
+                                        <td>
+                                            <a href="@package.TrackingLink" target="_blank">@package.TrackingId</a>
+                                        </td>
+                                        <td>@consignment.Status</td>
+
+                                    }
+                                    else
+                                    {
+                                        
+                                    <td>
+                                        <a href="@package.TrackingLink" target="_blank">@package.TrackingId</a>
+                                    </td>
+                                    <td>@orderEntry?.VendorProductCode</td>
+                                    <td>@orderEntry?.ProductName</td>
+                                    <td>@consignment.Quantity</td>
+                                    <td>@returnEntry.Reason</td>
+                                    <td>@consignment.Status</td>
+
+                                    }
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+
+
+                    </div>
+                </div>
+
+                @if (consignment.Status == SharedStatus.Receiving)
+                {
+                    <button type="button" class="btn btn-warning mb-3" onclick="markConsignmentAsReceived('@consignment.ConsignmentCode')">Lieferung als erhalten markieren</button>
+                }
+            }
+
+    }
+
+    @if (Model.Status.Equals(SharedStatus.Received))
+    {
+    <div class="form-group mt-3">
+        <label for="globalStatus">
+            <b>Neuer Status der Retoure</b>
+        </label>
+        <select class="form-control" id="globalStatus">
+            <option value="" selected>Bitte wählen...</option>
+            <option value=@SharedStatus.Completed>Retoure akzeptiert</option>
+            <option value=@SharedStatus.Canceled>Retoure nicht akzeptiert</option>
+        </select>
+    </div>
+    <button type="button" class="btn btn-primary mt-4" id="updateAllStatus">Aktualisieren</button>
+    }
+
+</div>
+
+<script>
+    function markConsignmentAsReceived(consignmentCode) {
+        var returnId = @Model.Id;
+        if(confirm('Sind Sie sicher, dass Sie dieses Consignment als erhalten markieren möchten?')) {
+            $.ajax({
+                url: '/Return/MarkConsignmentAsReceived',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ consignmentCode: consignmentCode, returnId: returnId }), 
+                success: function(response) {
+                    location.reload(); 
+                },
+                error: function(error) {
+                    alert('Fehler beim Markieren des Consignments als erhalten.');
+                }
+            });
+        }
+    }
+    
+    $(document).ready(function() {
+        $('#updateAllStatus').click(function() {
+           
+            const status = $('#globalStatus').val();
+        
+            const data = {
+                ReturnId: @Model.Id,
+                Status: status
+            };
+    
+            if(confirm('Sind Sie sicher, dass Sie den Status für alle ausgewählten Pakete aktualisieren möchten?')) {
+                $.ajax({
+                    url: '/Return/UpdatePackageStatus',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function() {
+                        alert("Die Informationen wurden erfolgreich aktualisiert.");
+                        window.location.href = `/Return/CompletedReturns`;
+                    },
+                    error: function(xhr, status, error) {
+                        let errorMessage = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : "Ein unbekannter Fehler ist aufgetreten.";
+                        console.error(errorMessage);
+                        alert(errorMessage)
+                    }
+                });
+            }
+        });
+    });
+    
+    function showAlert(type, message) {
+        
+        $('.alert').remove();
+        
+        // Erstellen des Alert-HTML-Elements
+        let alertHTML = `<div class="alert alert-${type} alert-dismissible fade show mt-3" role="alert">
+            ${message}
+        </div>`;
+    
+        // Einfügen des Alerts im DOM direkt nach dem <h1>-Element mit dem Text "Retourendetails"
+        $(alertHTML).insertAfter('h1.mb-4:contains("Retourendetails")');
+    
+    }
+
+    </script>

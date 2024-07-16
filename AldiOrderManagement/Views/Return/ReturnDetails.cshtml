@@ -1,0 +1,391 @@
+@using Shared.Constants
+@model Shared.Models.ReturnDetailsViewModel
+
+<div class="container mt-4">
+
+    <!-- Erfolgsmeldungen, Fehlermeldungen und Validierungsfehler anzeigen -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="card mb-5">
+        <div class="card-header bg-secondary text-white">
+            <h2>Retouren Details</h2>
+        </div>
+        <div class="card-body bg-light">
+            <!-- Bestellinformationen Tabelle -->
+            <h5>Bestellinformationen</h5>
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Bestellcode</th>
+                    <th>Retoure Erstellt</th>
+                    <th>Rma</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>@Model.returnObj.OrderCode</td>
+                    <td>@Model.returnObj.InitiationDate.ToShortDateString()</td>
+                    <td>@Model.returnObj.Rma</td>
+                    <td>@Model.returnObj.Status</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- Kundendaten Tabelle -->
+            <h5>Kundendaten</h5>
+            @if (Model.returnObj.CustomerInfo.Address != null)
+            {
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Typ</th>
+                    <th>Email</th>
+                    <th>Telefon</th>
+                    <th>Name</th>
+                    <th>Straße</th>
+                    <th>Postleitzahl</th>
+                    <th>Stadt</th>
+                    <th>Ländercode</th>
+                    @if (Model.returnObj.CustomerInfo.Address.Type.Equals(SharedStatus.Packstation))
+                    {
+                    <th>Packstationsnr.</th>
+                    <th>Postnr.</th>
+                    }
+                    @if (Model.returnObj.CustomerInfo.Address.Type.Equals(SharedStatus.PostOffice))
+                    {
+                    <th>Filialnr.</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>@Model.returnObj.CustomerInfo.Address.Type</td>
+                    <td>@Model.returnObj.CustomerInfo.EmailAddress</td>
+                    <td>@Model.returnObj.CustomerInfo.PhoneNumber</td>
+                    <td>@Model.returnObj.CustomerInfo.Address.FirstName @Model.returnObj.CustomerInfo.Address.LastName</td>
+                    <td>@Model.returnObj.CustomerInfo.Address.StreetName @Model.returnObj.CustomerInfo.Address.StreetNumber</td>
+                    <td>@Model.returnObj.CustomerInfo.Address.PostalCode</td>
+                    <td>@Model.returnObj.CustomerInfo.Address.Town</td>
+                    <td>@Model.returnObj.CustomerInfo.Address.CountryIsoCode</td>
+                    @if (Model.returnObj.CustomerInfo.Address.Type.Equals(SharedStatus.Packstation))
+                    {
+                    <td>@Model.returnObj.CustomerInfo.Address.PackstationNumber</td>
+                    <td>@Model.returnObj.CustomerInfo.Address.PostNumber</td>
+                    }
+
+                    @if (Model.returnObj.CustomerInfo.Address.Type.Equals(SharedStatus.PostOffice))
+                    {
+                    <td>@Model.returnObj.CustomerInfo.Address.PostOfficeNumber</td>
+                    }
+                </tr>
+                </tbody>
+            </table>
+            }
+        </div>
+    </div>
+
+    <script>
+let shipmentInfo = [];
+</script>
+
+    <h2>Retourenartikel</h2>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>Artikelname</th>
+            <th>Artikelnr.</th>
+            <th>Grund</th>
+            <th>Notiz</th>
+            <th>Menge</th>
+            <th>Retournierte Menge</th>
+            <th>Versandinfos</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var entry in Model.returnObj.ReturnEntries)
+        {
+            var orderEntry = Model.returnObj.Order.Entries.FirstOrDefault(oe => oe.EntryNumber == entry.OrderEntryNumber);
+
+            @if (orderEntry != null)
+            {
+                <tr>
+                    <td>@orderEntry.ProductName</td>
+                    <td>@orderEntry.VendorProductCode</td>
+                    <td>@entry.Reason</td>
+                    <td>@entry.Notes</td>
+                    <td>@entry.Quantity</td>
+                    <td>@entry.CanceledOrReturnedQuantity</td>
+                    <td>
+                        <button type="button" class="btn btn-primary" onclick="addShipmentInfo('@orderEntry.VendorProductCode', '@entry.Reason', @entry.Quantity, @entry.CanceledOrReturnedQuantity, @entry.Id)"
+                                @if (entry.Quantity <= entry.CanceledOrReturnedQuantity)
+                                {
+                                @:disabled
+                                }>
+                            Hinzufügen
+                        </button>
+
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+
+    <!-- Container für die Anzeige der bereits erstellten Sendungsinformationen -->
+    <h2>Versandinformationen (Erstellt)</h2>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>Artikelnummer</th>
+            <th>Grund</th>
+            <th>Trackingnummer</th>
+            <th>Versanddienstl.</th>
+            <th>Menge</th>
+        </tr>
+        </thead>
+        <tbody>
+
+
+        @if (Model.ShipmentInfos.Count > 0)
+        {
+            @foreach (var shipmentInfo in Model.ShipmentInfos)
+            {
+                if (shipmentInfo != null)
+                {
+                    <tr>
+                        <td>@shipmentInfo.ProductCode</td>
+                        <td>@shipmentInfo.Reason</td>
+                        <td>@shipmentInfo.TrackingNumber</td>
+                        <td>@shipmentInfo.Carrier</td>
+                        <td>@shipmentInfo.Quantity</td>
+                    </tr>
+                }
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">Keine Daten vorhanden</td>
+            </tr>
+        }
+
+        </tbody>
+    </table>
+
+    <!-- Container für die temporäre Anzeige der Sendungsinformationen -->
+    <h2>Versandinformationen (In Bearbeitung)</h2>
+    <div id="shipmentInfoContainer"></div>
+
+<button type="button" id="saveAllButton" class="btn btn-success" style="display: none" onclick="confirmSaveAll()">Alle Sendungsinformationen speichern</button>
+
+</div>
+
+<div class="modal fade" id="shipmentInfoModal" tabindex="-1" aria-labelledby="shipmentInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <form id="shipmentInfoForm">
+                    <input type="hidden" id="productCode" name="productCode">
+                    <input type="hidden" id="reason" name="reason">
+                    <input type="hidden" id="returnEntryId" name="returnEntryId">
+                    <div class="form-group">
+                        <label for="trackingNumber">Trackingnummer</label>
+                        <input type="text" class="form-control" id="trackingNumber" name="trackingNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="carrier">Versanddienstleister</label>
+                        <select class="form-control" id="carrier" name="carrier">
+                            <option value="DHL" selected>DHL</option>
+                            <option value="DPD">DPD</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Menge</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                    </div>
+
+                    <div id="errorMessage" class="text-danger"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveShipmentInfo()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+function confirmSaveAll() {
+    if (confirm('Sind Sie sicher, dass Sie alle Sendungsinformationen speichern möchten?')) {
+        submitShipmentInfo();
+    }
+}
+
+function addShipmentInfo(productCode, reason, initialMaxQuantity, canceledOrReturnedQuantity, returnEntryId) {
+    let maxQuantity = initialMaxQuantity - canceledOrReturnedQuantity; // Abziehen der retournierten Menge von der ursprünglichen Menge
+
+    document.getElementById('trackingNumber').value = '';
+    document.getElementById('carrier').value = 'DHL';
+    document.getElementById('quantity').value = '';
+    document.getElementById('productCode').value = productCode;
+    document.getElementById('reason').value = reason;
+    document.getElementById('returnEntryId').value = returnEntryId;
+    document.getElementById('quantity').max = maxQuantity > 0 ? maxQuantity : 0; // Setzen Sie max auf 0, wenn negative Werte entstehen
+    errorMessage.innerText = '';
+    $('#shipmentInfoModal').modal('show');
+}
+
+
+function saveShipmentInfo() {
+    const productCode = document.getElementById('productCode').value;
+    const reason = document.getElementById('reason').value;
+    const trackingNumber = document.getElementById('trackingNumber').value;
+    const carrier = document.getElementById('carrier').value;
+    let quantity = parseInt(document.getElementById('quantity').value, 10); // Die Menge, die gerade zur Retoure hinzugefügt wird.
+    let maxQuantity = parseInt(document.getElementById('quantity').max, 10); // Die maximale Menge basierend auf der ursprünglichen Bestellung minus bereits retournierte Menge.
+    const returnEntryId = parseInt(document.getElementById('returnEntryId').value, 10);
+
+    if (isNullOrEmpty(trackingNumber)){
+        errorMessage.innerText = "Bitte geben Sie eine Trackingnummer ein.";
+        return;
+    }
+
+    if (isNaN(quantity) || quantity <= 0){
+        errorMessage.innerText = "Bitte geben Sie eine gültige Zahl ein.";
+        return;
+    }
+
+    if(quantity > maxQuantity) {
+        errorMessage.innerText = "Die hinzuzufügende Menge überschreitet die verbleibende Menge der bestellten Artikel.";
+        return;
+    }
+    
+    // Berechnen der gesamten bisher hinzugefügten Menge für dieses Produkt
+        let totalAddedQuantity = shipmentInfo.reduce((total, item) => {
+            if (item.productCode === productCode && item.reason === reason) {
+                return total + item.quantity;
+            }
+            return total;
+        }, 0);
+    
+        // Berechnen der neuen Gesamtmenge, einschließlich der soeben hinzugefügten Menge
+        let newTotalQuantity = totalAddedQuantity + quantity;
+    
+        // Prüfen, ob die neue Gesamtmenge die maxQuantity überschreitet
+        if (newTotalQuantity > maxQuantity) {
+            errorMessage.innerText = "Die hinzuzufügende Menge überschreitet die verbleibende Menge der bestellten Artikel.";
+            return;
+        }
+
+    shipmentInfo.push({ productCode, reason, trackingNumber, carrier, quantity, returnEntryId });
+    updateShipmentInfoDisplay();
+        
+    $('#shipmentInfoModal').modal('hide');
+}
+
+function submitShipmentInfo() {
+    
+    let returnId = @Model.returnObj.Id; 
+
+    var ShipmentInfoAndReturnIdRequest = {
+        ShipmentInfo: shipmentInfo, 
+        ReturnId: returnId
+    };
+    
+    console.log(ShipmentInfoAndReturnIdRequest);
+
+    $.ajax({
+        url: '/Return/CreateShipmentInfo',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(ShipmentInfoAndReturnIdRequest),
+        success: function() {
+            // Umleitung zur ReturnDetails-Seite mit der ReturnId als Parameter
+            window.location.href = '/Return/ReturnDetails/' + ShipmentInfoAndReturnIdRequest.ReturnId;
+        },
+        error: function(xhr, status, error) {
+            console.error("Fehler beim Senden: ", status, error);
+            alert("Fehler beim Übermitteln der Informationen.");
+        }
+    });
+
+}
+
+
+function updateShipmentInfoDisplay() {
+    const container = document.getElementById('shipmentInfoContainer');
+    let table = `<table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Artikelnummer</th>
+                            <th>Grund</th>
+                            <th>Trackingnummer</th>
+                            <th>Versanddienstl.</th>
+                            <th>Menge</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+    if (shipmentInfo.length > 0) {
+        // Füge für jeden Eintrag in shipmentInfo eine Zeile in der Tabelle hinzu
+        shipmentInfo.forEach((info, index) => {
+            table += `<tr>
+                        <td>${info.productCode}</td>
+                        <td>${info.reason}</td>
+                        <td>${info.trackingNumber}</td>
+                        <td>${info.carrier}</td>
+                        <td>${info.quantity}</td>
+                        <td><button class="btn btn-danger" onclick="removeShipmentInfo(${index})">Entfernen</button></td>
+                      </tr>`;
+        });
+    } else {
+        table += `<tr><td colspan="4" class="text-center">Keine Daten vorhanden</td></tr>`;
+    }
+
+    table += `</tbody></table>`;
+    container.innerHTML = table;
+
+    const saveButton = document.getElementById('saveAllButton');
+    saveButton.style.display = shipmentInfo.length > 0 ? '' : 'none';
+}
+
+// Beim laden der Seite Tabelle für Versandinformationen aufrufen
+document.addEventListener('DOMContentLoaded', updateShipmentInfoDisplay);
+
+
+function removeShipmentInfo(index) {
+    shipmentInfo.splice(index, 1); // Entferne den Datensatz an der gegebenen Indexposition
+    updateShipmentInfoDisplay(); // Aktualisiere die Anzeige, um die Änderung widerzuspiegeln
+}
+
+function closeModal() {
+    $('#shipmentInfoModal').modal('hide');
+}
+
+function isNullOrEmpty(str) {
+    return str === null || str === undefined || str.trim() === "";
+}
+
+</script>

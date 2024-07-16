@@ -1,0 +1,147 @@
+@using Shared.Constants
+@model Shared.Entities.Return
+
+<div class="container mt-4">
+    <h1>@ViewData["Title"]</h1>
+
+
+    <div class="card mb-5">
+        <div class="card-header bg-secondary text-white">
+            <h2>Retouren Details</h2>
+        </div>
+        <div class="card-body bg-light">
+            <!-- Bestellinformationen Tabelle -->
+            <h5>Bestellinformationen</h5>
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Bestellcode</th>
+                    <th>Retoure Erstellt</th>
+                    <th>Rma</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>@Model.OrderCode</td>
+                    <td>@Model.InitiationDate.ToShortDateString()</td>
+                    <td>@Model.Rma</td>
+                    <td>@Model.Status</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- Kundendaten Tabelle -->
+            <h5>Kundendaten</h5>
+            @if (Model.CustomerInfo.Address != null)
+            {
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Typ</th>
+                        <th>Email</th>
+                        <th>Telefon</th>
+                        <th>Name</th>
+                        <th>Straße</th>
+                        <th>Postleitzahl</th>
+                        <th>Stadt</th>
+                        <th>Ländercode</th>
+                        @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.Packstation))
+                        {
+                            <th>Packstationsnr.</th>
+                            <th>Postnr.</th>
+                        }
+                        @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.PostOffice))
+                        {
+                            <th>Filialnr.</th>
+                        }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>@Model.CustomerInfo.Address.Type</td>
+                        <td>@Model.CustomerInfo.EmailAddress</td>
+                        <td>@Model.CustomerInfo.PhoneNumber</td>
+                        <td>@Model.CustomerInfo.Address.FirstName @Model.CustomerInfo.Address.LastName</td>
+                        <td>@Model.CustomerInfo.Address.StreetName @Model.CustomerInfo.Address.StreetNumber</td>
+                        <td>@Model.CustomerInfo.Address.PostalCode</td>
+                        <td>@Model.CustomerInfo.Address.Town</td>
+                        <td>@Model.CustomerInfo.Address.CountryIsoCode</td>
+                        @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.Packstation))
+                        {
+                            <td>@Model.CustomerInfo.Address.PackstationNumber</td>
+                            <td>@Model.CustomerInfo.Address.PostNumber</td>
+                        }
+
+                        @if (Model.CustomerInfo.Address.Type.Equals(SharedStatus.PostOffice))
+                        {
+                            <td>@Model.CustomerInfo.Address.PostOfficeNumber</td>
+                        }
+                    </tr>
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+    
+    @foreach (var returnEntry in Model.ReturnEntries)
+    {
+        var orderEntry = Model.Order.Entries.FirstOrDefault(e => e.EntryNumber == returnEntry.OrderEntryNumber);
+        
+            foreach (var consignment in returnEntry.ReturnConsignments)
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>Lieferungscode:</strong> @consignment.ConsignmentCode
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>Artikelnr.</th>
+                                <th>Produktname</th>
+                                <th>Menge</th>
+                                <th>Abgelehnte Menge</th>
+                                <th>Akzeptierte Menge</th>
+                                <th>Grund</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>@orderEntry?.VendorProductCode</td>
+                                <td>@orderEntry?.ProductName</td>
+                                <td>@consignment.Quantity</td>
+                                <td>@consignment.CanceledQuantity</td>
+                                <td>@consignment.CompletedQuantity</td>
+                                <td>@returnEntry?.Reason</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>Versanddienstl.</th>
+                                <th>Trackinglink</th>
+                                <th>Zugestellt</th>
+                                <th>Abgeschlossen</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var package in consignment.Packages)
+                            {
+                                <tr>
+                                    <td>@consignment.Carrier</td>
+                                    <td>
+                                        <a href="@package.TrackingLink" target="_blank">@package.TrackingId</a>
+                                    </td>
+                                    <td>@package.ReceiptDelivery?.ToShortDateString()</td>
+                                    <td>@consignment.CompletedDate?.ToShortDateString()</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+        }
+    }
+</div>

@@ -1,0 +1,291 @@
+﻿@using Shared.Constants
+@model Shared.Entities.Order
+
+<style>
+    .entry-container {
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6; 
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+    }
+    .entry-header {
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+    .address-table {
+        margin-top: 1rem;
+    }
+</style>
+
+<div class="container mt-4">
+    <h1>Bestellungsdetails</h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <!-- Bestelldetails-Tabelle -->
+    <table class="table table-hover mb-5">
+        <thead>
+        <tr>
+            <th>Bestellcode</th>
+            <th>Email</th>
+            <th>Telefon</th>
+            <th>Status</th>
+            <th>Erstellt</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>@Model.Code</td>
+            <td>@Model.EmailAddress</td>
+            <td>@Model.Phone</td>
+            <td>@Model.Status</td>
+            <td>@Model.Created</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Bestellungspositionen</h2>
+    <!-- Formular für die Stornierung von Bestellpositionen -->
+    <form method="post" asp-controller="Order" asp-action="CancelOrderEntries">
+        <input type="hidden" name="orderId" value="@Model.Id"/>
+        <input type="hidden" name="orderCode" value="@Model.Code"/>
+        @foreach (var entry in Model.Entries)
+        {
+            <input type="hidden" name="cancelledEntries[@entry.EntryNumber].OrderEntryId" value="@entry.Id"/>
+
+            if (Model.Status != null)
+            {
+                <div class="entry-container">
+                    <div class="entry-header">Position @entry.EntryNumber - @entry.ProductName</div>
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            @if (Model.Status.Equals(@SharedStatus.InProgress, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <th/>
+                            }
+
+                            <th>Positionsnr.</th>
+                            <th>Produktname</th>
+                            <th>Artikelnummer</th>
+                            <th>Menge</th>
+                            @if (!Model.Status.Equals(@SharedStatus.Canceled, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <th>Stornierte Menge</th>
+                            }
+                            @if (Model.Status.Equals(@SharedStatus.InProgress, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <th>Stornierungsmenge</th>
+                            }
+                        </tr>
+                        </thead>
+                        <tbody>
+
+                        <tr>
+                            @if (Model.Status.Equals(@SharedStatus.InProgress, StringComparison.OrdinalIgnoreCase) && entry.CanceledOrReturnedQuantity < entry.Quantity)
+                            {
+                                <td>
+                                    <input type="checkbox" name="cancelledEntries[@entry.EntryNumber].IsCancelled" value="true"/>
+                                </td>
+                            }
+
+
+                            <td>@entry.EntryNumber</td>
+                            <td>@entry.ProductName</td>
+                            <td>@entry.VendorProductCode</td>
+                            <td>@entry.Quantity</td>
+                            @if (!Model.Status.Equals(@SharedStatus.Canceled, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <td>@entry.CanceledOrReturnedQuantity</td>
+                            }
+
+                            @if (Model.Status.Equals(@SharedStatus.InProgress, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <td>
+                                    <input type="number" name="cancelledEntries[@entry.EntryNumber].CancelQuantity" min="1" max="@(entry.Quantity - entry.CanceledOrReturnedQuantity)"/>
+                                </td>
+                            }
+
+
+                        </tr>
+                        </tbody>
+                    </table>
+                    <table class="table address-table table-hover">
+
+                        @if (entry.DeliveryAddress != null)
+                        {
+                            <thead>
+                            <tr>
+                                <th>Typ</th>
+                                <th>Name</th>
+                                <th>Straße</th>
+                                <th>Postleitzahl</th>
+                                <th>Stadt</th>
+                                <th>Ländercode</th>
+                                @if (entry.DeliveryAddress.Type.Equals(@SharedStatus.Packstation))
+                                {
+                                    <th>Packstationsnr.</th>
+                                    <th>Postnr.</th>
+                                }
+                                @if (entry.DeliveryAddress.Type.Equals(@SharedStatus.PostOffice))
+                                {
+                                    <th>Filialnr.</th>
+                                }
+                            </tr>
+                            </thead>
+                            <tbody>
+
+
+                            <tr>
+                                <td>@entry.DeliveryAddress.Type</td>
+                                <td>@entry.DeliveryAddress.FirstName @entry.DeliveryAddress.LastName</td>
+                                <td>@entry.DeliveryAddress.StreetName @entry.DeliveryAddress.StreetNumber</td>
+                                <td>@entry.DeliveryAddress.PostalCode</td>
+                                <td>@entry.DeliveryAddress.Town</td>
+                                <td>@entry.DeliveryAddress.CountryIsoCode</td>
+                                @if (entry.DeliveryAddress.Type.Equals(@SharedStatus.Packstation))
+                                {
+                                    <td>@entry.DeliveryAddress.PackstationNumber</td>
+                                    <td>@entry.DeliveryAddress.PostNumber</td>
+                                }
+
+                                @if (entry.DeliveryAddress.Type.Equals(@SharedStatus.PostOffice))
+                                {
+                                    <td>@entry.DeliveryAddress.PostOfficeNumber</td>
+                                }
+                            </tr>
+
+                            </tbody>
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5">Keine Lieferadresse verfügbar</td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+
+               @if (Model.Consignments.Count > 0)
+                {
+                <h1>Lieferungen</h1>
+                } 
+                @foreach (var consignment in Model.Consignments)
+                {
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <strong>Lieferungscode:</strong> @consignment.VendorConsignmentCode
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Versanddienstl.</th>
+                                    <th>Trackinglink</th>
+                                    <th>Versanddatum</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>@consignment.Status</td>
+                                    <td>@consignment.Carrier</td>
+                                    <td>
+                                        <a href="@consignment.TrackingLink" target="_blank">@consignment.TrackingId</a>
+                                    </td>
+                                    <td>@consignment.ShippingDate</td>
+                                </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Tabelle für Consignment Entries -->
+                            <table class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>Artikelnummer</th>
+                                    <th>Produktname</th>
+                                    <th>Menge</th>
+
+
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var consignmentEntry in consignment.ConsignmentEntries)
+                                {
+                                    <tr>
+
+                                        <td>@consignmentEntry.OrderEntry.VendorProductCode</td>
+                                        <td>@consignmentEntry.OrderEntry.ProductName</td>
+                                        <td>@consignmentEntry.Quantity</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+
+                            <!-- Tabelle für Adressinformationen -->
+                            <table class="table address-table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>Typ</th>
+                                    <th>Name</th>
+                                    <th>Straße</th>
+                                    <th>Postleitzahl</th>
+                                    <th>Stadt</th>
+                                    <th>Ländercode</th>
+                                    @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.Packstation))
+                                    {
+                                        <th>Packstationsnr.</th>
+                                        <th>Postnr.</th>
+                                    }
+                                    @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.PostOffice))
+                                    {
+                                        <th>Filialnr.</th>
+                                    }
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>@consignment.ShippingAddress.Type</td>
+                                    <td>@consignment.ShippingAddress.FirstName @consignment.ShippingAddress.LastName</td>
+                                    <td>@consignment.ShippingAddress.StreetName @consignment.ShippingAddress.StreetNumber</td>
+                                    <td>@consignment.ShippingAddress.PostalCode</td>
+                                    <td>@consignment.ShippingAddress.Town</td>
+                                    <td>@consignment.ShippingAddress.CountryIsoCode</td>
+                                    @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.Packstation))
+                                    {
+                                        <td>@consignment.ShippingAddress.PackstationNumber</td>
+                                        <td>@consignment.ShippingAddress.PostNumber</td>
+                                    }
+                                    @if (consignment.ShippingAddress.Type.Equals(@SharedStatus.PostOffice))
+                                    {
+                                        <td>@consignment.ShippingAddress.PostOfficeNumber</td>
+                                    }
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            }
+        }
+    </form>
+</div>

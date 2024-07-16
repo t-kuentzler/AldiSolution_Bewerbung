@@ -1,0 +1,12 @@
+@{
+    ViewBag.Title = "Download Bestätigung";
+}
+
+<div class="container mt-5">
+    <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading">Export Erfolgreich!</h4>
+        <p>Ihre Datei wurde erfolgreich generiert und ist nun zum Download bereit.</p>
+    </div>
+    <a href="@Url.Action("DownloadFile", "Order", new { fileId = ViewBag.FileId })" class="btn btn-success btn-lg">Datei herunterladen</a>
+    <a href="@Url.Action("Index", "Order")" class="btn btn-secondary btn-lg ml-2">Zurück zur Übersicht</a>
+</div>

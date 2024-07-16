@@ -1,0 +1,71 @@
+﻿<div class="container mt-4">
+    <form asp-action="ExportToExcel" asp-controller="Order" method="post">
+        <div class="row">
+            <div class="col-md-8">
+                <h1>@Model.Count Offene Bestellungen</h1>
+            </div>
+            <div class="col-md-4 text-right">
+                <button type="submit" class="btn btn-warning">Export to XLS</button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+        {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        }
+        @if (!string.IsNullOrEmpty(TempData["ErrorMessage"] as string))
+        {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        }
+
+        @if (Model.Count > 0)
+        {
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>
+                    <button type="button" class="btn btn-warning btn-sm" id="markUnchecked">Alle markieren</button>
+                </th>
+                <th>Exportiert</th>
+                <th>Bestellcode</th>
+                <th>Status</th>
+                <th>Erstellt</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var order in Model)
+            {
+            <tr>
+                <td>
+                    <input type="checkbox" name="selectedOrders" value="@order.Id" />
+                </td>
+                <td class="exported">@(order.Exported ? "Ja" : "Nein")</td>
+                <td>@order.Code</td>
+                <td>@order.Status</td>
+                <td>@order.Created.ToString("dd.MM.yyyy HH:mm")</td>
+                <td>
+                    <a class="btn btn-primary" asp-controller="Order" asp-action="OrderDetails" asp-route-id="@order.Id">Details anzeigen</a>
+                </td>
+            </tr>
+            }
+            </tbody>
+        </table>
+        }
+        else
+        {
+        <p>Keine offenen Bestellungen gefunden.</p>
+        }
+    </form>
+</div>
+
+<script>
+    document.getElementById('markUnchecked').addEventListener('click', function() {
+        var checkboxes = document.querySelectorAll('input[name="selectedOrders"]');
+        checkboxes.forEach(function(checkbox) {
+            if (!checkbox.checked && checkbox.closest('tr').querySelector('.exported').textContent === 'Nein') {
+                checkbox.checked = true;
+            }
+        });
+    });
+</script>
