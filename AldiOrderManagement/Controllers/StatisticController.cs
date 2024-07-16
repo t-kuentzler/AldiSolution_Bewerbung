@@ -1,5 +1,5 @@
-using AldiOrderManagement.Services;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts;
 
 namespace AldiOrderManagement.Controllers;
 
