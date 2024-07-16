@@ -1,4 +1,5 @@
 using Shared.Entities;
+using Shared.Models;
 
 namespace Shared.Contracts;
 
@@ -14,4 +15,5 @@ public interface IConsignmentRepository
     Task<Consignment?> GetConsignmentByConsignmentIdAsync(int consignmentId);
     Task<Consignment?> GetShippedConsignmentByTrackingIdAsync(string trackingId);
     Task UpdateConsignmentStatusByTrackingIdAsync(string newStatus, string trackingId);
+    Task<List<Consignment>> SearchShippedConsignmentsAsync(SearchTerm searchTerm);
 }

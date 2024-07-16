@@ -3,6 +3,7 @@ using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Exceptions;
+using Shared.Models;
 
 namespace Shared.Repositories;
 
@@ -191,6 +192,24 @@ public class ConsignmentRepository : IConsignmentRepository
         {
             throw new RepositoryException(
                 $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren des Status für alle Consignments mit der TrackingId '{trackingId}'.",
+                ex);
+        }
+    }
+    
+    public async Task<List<Consignment>> SearchShippedConsignmentsAsync(SearchTerm searchTerm)
+    {
+        try
+        {
+            return await _applicationDbContext.Consignment
+                .Include(c => c.ConsignmentEntries)
+                .ThenInclude(ce => ce.OrderEntry)
+                .Where(c => c.Status == SharedStatus.Shipped &&
+                            (c.OrderCode.Contains(searchTerm.value) || c.TrackingId.Contains(searchTerm.value)))
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. SearchTerm: '{searchTerm.value}'.",
                 ex);
         }
     }

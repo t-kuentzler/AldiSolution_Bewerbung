@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 using Shared.Contracts;
@@ -11,11 +12,15 @@ public class ConsignmentService : IConsignmentService
 {
     private readonly IConsignmentRepository _consignmentRepository;
     private readonly ILogger<ConsignmentService> _logger;
+    private readonly IValidatorWrapper<SearchTerm> _searchTermValidator;
 
-    public ConsignmentService(IConsignmentRepository consignmentRepository, ILogger<ConsignmentService> logger)
+
+    public ConsignmentService(IConsignmentRepository consignmentRepository, ILogger<ConsignmentService> logger,
+        IValidatorWrapper<SearchTerm> searchTermValidator)
     {
         _consignmentRepository = consignmentRepository;
         _logger = logger;
+        _searchTermValidator = searchTermValidator;
     }
 
     public async Task<(bool success, int consignmentId)> SaveConsignmentAsync(Consignment consignment)
@@ -349,6 +354,50 @@ public class ConsignmentService : IConsignmentService
             _logger.LogError(ex,
                 $"Unerwarteter Fehler beim aktualisieren des Consignment mit der TrackingId '{trackingId}'.");
             return false;
+        }
+    }
+    
+    public async Task<List<Consignment>> SearchConsignmentsAsync(SearchTerm searchTerm, string status)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm.value))
+        {
+            return new List<Consignment>();
+        }
+
+        if (string.IsNullOrEmpty(status))
+        {
+            _logger.LogError($"'{nameof(status)}' darf nicht null sein.");
+            throw new ArgumentException(nameof(status));
+        }
+
+        try
+        {
+            await _searchTermValidator.ValidateAndThrowAsync(searchTerm);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(ex,
+                $"Es ist ein Validierungsfehler aufgetreten beim suchen von Consignment mit dem SearchTearm '{searchTerm.value}' aufgetreten.");
+            throw;
+        }
+
+        try
+        {
+            return await _consignmentRepository.SearchShippedConsignmentsAsync(searchTerm);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim Abrufen von allen Consignments mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim Abrufen von allen Consignments mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.");
+            throw new ConsignmentServiceException(
+                $"Unerwarteter Fehler beim Abrufen von allen Consignments mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.",
+                ex);
         }
     }
 }
