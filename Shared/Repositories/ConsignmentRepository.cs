@@ -228,4 +228,21 @@ public class ConsignmentRepository : IConsignmentRepository
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Status: '{status}'.", ex);
         }
     }
+    
+    public async Task<ConsignmentEntry?> GetConsignmentEntryByIdAsync(int consignmentEntryId)
+    {
+        try
+        {
+            return await _applicationDbContext.ConsignmentEntry
+                .Include(c => c.Consignment)
+                .Include(c => c.OrderEntry)
+                .ThenInclude(ce => ce.DeliveryAddress) 
+                .FirstOrDefaultAsync(c => c.Id == consignmentEntryId);
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten. ConsignmentEntryId: '{consignmentEntryId}'.", ex);
+        }
+    }
 }

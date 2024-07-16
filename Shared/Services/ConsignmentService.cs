@@ -474,4 +474,32 @@ public class ConsignmentService : IConsignmentService
 
         return false;
     }
+    
+    public async Task<ConsignmentEntry?> GetConsignmentEntryByIdAsync(int consignmentEntryId)
+    {
+        if (consignmentEntryId <= 0)
+        {
+            _logger.LogError($"'{nameof(consignmentEntryId)}' muss größer als 0 sein.");
+            throw new InvalidIdException($"'{nameof(consignmentEntryId)}' muss größer als 0 sein.");
+        }
+
+        try
+        {
+            return await _consignmentRepository.GetConsignmentEntryByIdAsync(consignmentEntryId);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim Abrufen von ConsignmentEntry mit der Id '{consignmentEntryId}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim Abrufen von ConsignmentEntry mit dem Status '{consignmentEntryId}'.");
+            throw new ConsignmentServiceException(
+                $"Unerwarteter Fehler beim Abrufen von ConsignmentEntry mit dem Status '{consignmentEntryId}'.",
+                ex);
+        }    
+    }
 }
