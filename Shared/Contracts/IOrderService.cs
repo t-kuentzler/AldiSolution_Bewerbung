@@ -1,4 +1,5 @@
 using Shared.Entities;
+using Shared.Models;
 
 namespace Shared.Contracts;
 
@@ -13,4 +14,5 @@ public interface IOrderService
     Task UpdateOrderStatusByIdAsync(int orderId, string status);
     Task<List<Order>> GetAllOrdersByStatusAsync(string status);
     Task<Order> GetOrderByIdAsync(int orderId);
+    Task<List<Order>> SearchOrdersAsync(SearchTerm searchTerm, string status);
 }

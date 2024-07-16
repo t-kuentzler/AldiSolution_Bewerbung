@@ -16,11 +16,14 @@ public class OrderService : IOrderService
     private readonly IValidatorWrapper<Order> _orderValidator;
     private readonly IValidatorWrapper<UpdateStatus> _updateStatusValidator;
     private readonly IOrderRepository _orderRepository;
+    private readonly IValidatorWrapper<SearchTerm> _searchTermValidator;
+
 
 
     public OrderService(IAccessTokenService accessTokenService, IOAuthClientService oAuthClientService,
         ILogger<OrderService> logger, IValidatorWrapper<Order> orderValidator,
-        IValidatorWrapper<UpdateStatus> updateStatusValidator, IOrderRepository orderRepository)
+        IValidatorWrapper<UpdateStatus> updateStatusValidator, IOrderRepository orderRepository,
+        IValidatorWrapper<SearchTerm> searchTermValidator)
     {
         _accessTokenService = accessTokenService;
         _oAuthClientService = oAuthClientService;
@@ -28,6 +31,7 @@ public class OrderService : IOrderService
         _orderValidator = orderValidator;
         _updateStatusValidator = updateStatusValidator;
         _orderRepository = orderRepository;
+        _searchTermValidator = searchTermValidator;
     }
 
     public async Task ProcessSingleOrderAsync(Order order)
@@ -347,6 +351,50 @@ public class OrderService : IOrderService
         }
 
         return order;
+    }
+    
+    public async Task<List<Order>> SearchOrdersAsync(SearchTerm searchTerm, string status)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm.value))
+        {
+            return new List<Order>();
+        }
+
+        if (string.IsNullOrEmpty(status))
+        {
+            _logger.LogError($"'{nameof(status)}' darf nicht null sein.");
+            throw new ArgumentNullException(nameof(status));
+        }
+
+        try
+        {
+            await _searchTermValidator.ValidateAndThrowAsync(searchTerm);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(ex,
+                $"Es ist ein Validierungsfehler aufgetreten beim suchen von Order mit dem searchTerm '{searchTerm.value}'.");
+            throw;
+        }
+
+        try
+        {
+            return await _orderRepository.SearchOrdersAsync(searchTerm, status);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim Suchen von stornierten Bestellungen mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim Suchen von stornierten Bestellungen mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.");
+            throw new OrderServiceException(
+                $"Unerwarteter Fehler beim Suchen von stornierten Bestellungen mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.",
+                ex);
+        }
     }
 }
 

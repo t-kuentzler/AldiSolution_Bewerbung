@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Exceptions;
+using Shared.Models;
 
 namespace Shared.Repositories;
 
@@ -163,6 +164,24 @@ public class OrderRepository : IOrderRepository
         catch (Exception ex)
         {
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderId: '{orderId}'", ex);
+        }
+    }
+    
+    public async Task<List<Order>> SearchOrdersAsync(SearchTerm searchTerm, string status)
+    {
+        try
+        {
+            return await _applicationDbContext.Order
+                .Include(o => o.Entries)
+                .ThenInclude(entry => entry.DeliveryAddress)
+                .Where(o => o.Status == status && (o.Code.Contains(searchTerm.value) || o.Consignments.Any(c => c.TrackingId == searchTerm.value)))
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim Suchen von Bestellungen. Suchbegriff: '{searchTerm.value}', Status: '{status}'",
+                ex);
         }
     }
 }
