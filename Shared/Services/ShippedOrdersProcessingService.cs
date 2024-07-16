@@ -14,6 +14,8 @@ public class ShippedOrdersProcessingService : IShippedOrdersProcessingService
         _orderService = orderService;
     }
     
+    //Ruft die SHIPPED orders ab, prüft ob ein consignment davon delivered ist. Falls ja-> Status der Order auf DELIVERED setzen
+    //Prüft ob alle consignments der order CANCELLED sind. Falls ja -> Status der Order auf CANCELLED setzen
     public async Task CheckAndProcessShippedOrders()
     {
         try
