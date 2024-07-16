@@ -78,6 +78,7 @@ namespace Shared
             services.AddScoped<IGuidGenerator, GuidGenerator>();
             services.AddSingleton<IFileMapping, FileMapping>();
             services.AddSingleton<IImageLoader, ImageLoader>();
+            services.AddSingleton<IStatisticService, StatisticService>();
             
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
