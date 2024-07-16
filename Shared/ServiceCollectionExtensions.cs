@@ -7,6 +7,7 @@ using Shared.Contracts;
 using Shared.Entities;
 using Shared.Factories;
 using Shared.Generator;
+using Shared.Helpers;
 using Shared.Models;
 using Shared.Repositories;
 using Shared.Services;
@@ -72,7 +73,12 @@ namespace Shared
             services.AddScoped<IFileService, FileService>();
             services.AddScoped<IQuantityCheckService, QuantityCheckService>();
             services.AddScoped<ICancellationService, CancellationService>();
-
+            services.AddScoped<IExcelWorkbook, ExcelWorkbook>();
+            services.AddScoped<IFileWrapper, FileWrapper>();
+            services.AddScoped<IGuidGenerator, GuidGenerator>();
+            services.AddSingleton<IFileMapping, FileMapping>();
+            services.AddSingleton<IImageLoader, ImageLoader>();
+            
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
