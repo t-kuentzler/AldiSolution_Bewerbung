@@ -321,7 +321,7 @@ public class ConsignmentService : IConsignmentService
         }
     }
     
-    public async Task<bool> UpdateConsignmentStatusAsync(string newStatus, string trackingId)
+    public async Task<bool> UpdateDpdConsignmentStatusAsync(string newStatus, string trackingId)
     {
         try
         {

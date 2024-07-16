@@ -46,7 +46,7 @@ public class DpdTrackingDataService : IDpdTrackingDataService
         }
 
         bool updateConsignmentResult =
-            await _consignmentService.UpdateConsignmentStatusAsync(trackingData.status, trackingData.pnr);
+            await _consignmentService.UpdateDpdConsignmentStatusAsync(trackingData.status, trackingData.pnr);
 
         //Update in DB erfolgreich -> API den status melden
         if (updateConsignmentResult)
