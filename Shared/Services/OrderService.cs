@@ -1,4 +1,5 @@
 using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 using Shared.Contracts;
@@ -10,28 +11,35 @@ namespace Shared.Services;
 
 public class OrderService : IOrderService
 {
-    private readonly IAccessTokenService _accessTokenService;
+    private readonly ICancellationService _cancellationService;
     private readonly IOAuthClientService _oAuthClientService;
     private readonly ILogger<OrderService> _logger;
     private readonly IValidatorWrapper<Order> _orderValidator;
     private readonly IValidatorWrapper<UpdateStatus> _updateStatusValidator;
     private readonly IOrderRepository _orderRepository;
     private readonly IValidatorWrapper<SearchTerm> _searchTermValidator;
+    private readonly IValidatorWrapper<CancelOrderEntryModel> _cancelOrderEntryValidator;
+    private readonly IQuantityCheckService _quantityCheckService;
 
 
 
-    public OrderService(IAccessTokenService accessTokenService, IOAuthClientService oAuthClientService,
+
+    public OrderService(ICancellationService cancellationService, IOAuthClientService oAuthClientService,
         ILogger<OrderService> logger, IValidatorWrapper<Order> orderValidator,
         IValidatorWrapper<UpdateStatus> updateStatusValidator, IOrderRepository orderRepository,
-        IValidatorWrapper<SearchTerm> searchTermValidator)
+        IValidatorWrapper<SearchTerm> searchTermValidator, IValidatorWrapper<CancelOrderEntryModel> cancelOrderEntryValidator,
+        IQuantityCheckService quantityCheckService
+        )
     {
-        _accessTokenService = accessTokenService;
+        _cancellationService = cancellationService;
         _oAuthClientService = oAuthClientService;
         _logger = logger;
         _orderValidator = orderValidator;
         _updateStatusValidator = updateStatusValidator;
         _orderRepository = orderRepository;
         _searchTermValidator = searchTermValidator;
+        _cancelOrderEntryValidator = cancelOrderEntryValidator;
+        _quantityCheckService = quantityCheckService;
     }
 
     public async Task ProcessSingleOrderAsync(Order order)
@@ -394,6 +402,101 @@ public class OrderService : IOrderService
             throw new OrderServiceException(
                 $"Unerwarteter Fehler beim Suchen von stornierten Bestellungen mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.",
                 ex);
+        }
+    }
+    
+    public async Task<bool> ProcessOrderEntriesCancellationAsync(int orderId, string orderCode, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
+    {
+        ValidateInputs(orderId, orderCode, cancelledEntries);
+
+        var order = await GetOrderByIdAsync(orderId);
+        await ValidateCancellationEntriesAsync(cancelledEntries); 
+        ProcessCancellationsAsync(order, cancelledEntries);
+
+        var cancellationRequests = cancelledEntries
+            .Where(e => e.Value.IsCancelled)
+            .Select(e => new OrderCancellationEntry
+            {
+                orderEntryNumber = e.Key,
+                cancelQuantity = e.Value.CancelQuantity,
+                cancelReason = SharedStatus.CustomerRequest,
+                notes = "Wurde auf Kundenwunsch storniert."
+            }).ToList();
+
+        bool apiResult = await SendCancellationRequestsAsync(orderCode, cancellationRequests);
+        if (apiResult)
+        {
+            await CancelOrderEntriesAsync(order, cancellationRequests);
+            return true;
+        }
+
+        return false;
+    }
+    
+    private void ValidateInputs(int orderId, string orderCode, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
+    {
+        if (orderId <= 0)
+        {
+            throw new InvalidIdException($"{nameof(orderId)} muss größer als 0 sein.");
+        }
+
+        if (string.IsNullOrWhiteSpace(orderCode))
+        {
+            throw new OrderCodeIsNullException($"{nameof(orderCode)} darf nicht null sein.");
+        }
+
+        if (!cancelledEntries.Any(entry => entry.Value.IsCancelled))
+        {
+            var failures = new List<ValidationFailure>
+            {
+                new ValidationFailure("cancelledEntries", "Bitte markieren Sie mindestens eine Position.")
+            };
+            throw new ValidationException(new ValidationResult(failures).Errors);
+        }
+    }
+    
+    private async Task ValidateCancellationEntriesAsync(Dictionary<int, CancelOrderEntryModel> cancelledEntries)
+    {
+        foreach (var cancelEntry in cancelledEntries.Where(e => e.Value.IsCancelled))
+        {
+            await _cancelOrderEntryValidator.ValidateAndThrowAsync(cancelEntry.Value);
+        }
+    }
+    
+    private void ProcessCancellationsAsync(Order order, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
+    {
+        foreach (var cancelEntry in cancelledEntries.Where(e => e.Value.IsCancelled))
+        {
+            var orderEntry = order.Entries.FirstOrDefault(ce => ce.Id == cancelEntry.Value.OrderEntryId);
+            if (orderEntry != null && _quantityCheckService.IsQuantityExceedingAvailable(
+                    orderEntry.CanceledOrReturnedQuantity, cancelEntry.Value.CancelQuantity, orderEntry.Quantity))
+            {
+                throw new QuantityExceededException("Die stornierte Menge überschreitet die verfügbare Menge.");
+            }
+        }
+    }
+    
+    private async Task<bool> SendCancellationRequestsAsync(string orderCode, List<OrderCancellationEntry> cancellationRequests)
+    {
+        bool apiResult = await _oAuthClientService.CancelOrderEntriesAsync(orderCode, cancellationRequests);
+        return apiResult;
+    }
+    
+    private async Task CancelOrderEntriesAsync(Order order, List<OrderCancellationEntry> cancellationEntries)
+    {
+        foreach (var cancellationEntry in cancellationEntries)
+        {
+            var entry = order.Entries.FirstOrDefault(e => e.EntryNumber == cancellationEntry.orderEntryNumber);
+
+            if (entry != null)
+            {
+                await _cancellationService.ProcessCancellationEntry(order, entry, cancellationEntry);
+            }
+        }
+
+        if (_cancellationService.AreAllOrderEntriesCancelled(order))
+        {
+            await _cancellationService.CancelWholeOrder(order);
         }
     }
 }

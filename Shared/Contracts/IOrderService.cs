@@ -15,4 +15,7 @@ public interface IOrderService
     Task<List<Order>> GetAllOrdersByStatusAsync(string status);
     Task<Order> GetOrderByIdAsync(int orderId);
     Task<List<Order>> SearchOrdersAsync(SearchTerm searchTerm, string status);
+
+    Task<bool> ProcessOrderEntriesCancellationAsync(int orderId, string orderCode,
+        Dictionary<int, CancelOrderEntryModel> cancelledEntries);
 }
