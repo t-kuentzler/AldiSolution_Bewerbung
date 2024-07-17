@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Shared;
 using Shared.Logger;
-using ApplicationDbContext = AldiOrderManagement.Data.ApplicationDbContext;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
 using System.Runtime.InteropServices;
@@ -11,10 +11,9 @@ namespace AldiOrderManagement
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             LoggerConfigurator.ConfigureLogger();
-
             Log.Information("Die Anwendung wurde gestartet.");
 
             var builder = WebApplication.CreateBuilder(args);
@@ -36,14 +35,12 @@ namespace AldiOrderManagement
             // Data Protection Configuration
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Konfiguration für Windows
                 builder.Services.AddDataProtection()
                     .PersistKeysToFileSystem(new DirectoryInfo(@"\\10.4.240.76\aspnet_share\antiforgerytoken\AldiOrderManagement_TEST"))
                     .SetApplicationName("AldiOrderManagement_TEST");
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                // Konfiguration für macOS
                 builder.Services.AddDataProtection()
                     .PersistKeysToFileSystem(new DirectoryInfo("/Volumes/aspnet_share/antiforgerytoken/AldiOrderManagement_TEST"))
                     .SetApplicationName("AldiOrderManagement_TEST");
@@ -54,6 +51,9 @@ namespace AldiOrderManagement
 
             var app = builder.Build();
 
+            // Check database connection
+            await CheckDatabaseConnection(app);
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -62,15 +62,12 @@ namespace AldiOrderManagement
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
             app.UseRouting();
-
             app.UseAuthentication();
             app.UseAuthorization();
 
@@ -78,8 +75,7 @@ namespace AldiOrderManagement
             app.Use((context, next) =>
             {
                 var tokens = context.RequestServices.GetService<IAntiforgery>().GetAndStoreTokens(context);
-                context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken,
-                    new CookieOptions { HttpOnly = false });
+                context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken, new CookieOptions { HttpOnly = false });
                 return next();
             });
 
@@ -89,6 +85,31 @@ namespace AldiOrderManagement
             app.MapRazorPages();
 
             app.Run();
+        }
+
+        private static async Task CheckDatabaseConnection(WebApplication app)
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+                    var canConnect = await dbContext.Database.CanConnectAsync();
+                    if (canConnect)
+                    {
+                        Log.Information("Verbindung zur Datenbank erfolgreich.");
+                    }
+                    else
+                    {
+                        Log.Error("Fehler bei der Verbindung zur Datenbank.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Ein unerwarteter Fehler ist aufgetreten beim Versuch, die Datenbankverbindung zu prüfen.");
+                }
+            }
         }
     }
 }
