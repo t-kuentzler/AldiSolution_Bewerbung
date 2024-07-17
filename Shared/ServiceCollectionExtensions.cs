@@ -79,13 +79,14 @@ namespace Shared
             services.AddSingleton<IFileMapping, FileMapping>();
             services.AddSingleton<IImageLoader, ImageLoader>();
             services.AddSingleton<IStatisticService, StatisticService>();
-            services.AddSingleton<IStatisticRepository, StatisticRepository>();
+            services.AddSingleton<IReturnConsignmentAndPackageService, ReturnConsignmentAndPackageService>();
             
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
             services.AddScoped<IReturnRepository, ReturnRepository>();
+            services.AddSingleton<IStatisticRepository, StatisticRepository>();
 
             //Generator
             services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
@@ -120,6 +121,12 @@ namespace Shared
             services.AddTransient<IValidator<SearchTerm>, SearchTermValidator>();
             services.AddTransient<IValidator<CancelOrderEntryModel>, CancelOrderEntryValidator>();
             services.AddTransient<IValidator<ShipmentInfo>, ShipmentInfoValidator>();
+            services.AddTransient<IValidator<ReceivingReturnAddressRequest>, ReceivingReturnAddressRequestValidator>();
+            services.AddTransient<IValidator<ReceivingReturnConsignmentsRequest>, ReceivingReturnConsignmentsRequestValidator>();
+            services.AddTransient<IValidator<ReceivingReturnCustomerInfoRequest>, ReceivingReturnCustomerInfoRequestValidator>();
+            services.AddTransient<IValidator<ReceivingReturnEntriesRequest>, ReceivingReturnEntriesRequestValidator>();
+            services.AddTransient<IValidator<ReceivingReturnPackagesRequest>, ReceivingReturnPackagesRequestValidator>();
+            services.AddTransient<IValidator<ReceivingReturnRequest>, ReceivingReturnRequestValidator>();
             
             services.AddSingleton<SmtpClient>();
 
