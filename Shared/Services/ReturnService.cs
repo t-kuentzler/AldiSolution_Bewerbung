@@ -25,6 +25,7 @@ public class ReturnService : IReturnService
     private readonly IValidatorWrapper<ShipmentInfo> _shipmentInfoValidator;
     private readonly IValidatorWrapper<ReceivingReturnRequest> _receivingReturnRequestValidator;
     private readonly TrackingLinkBaseUrls _trackingLinkBaseUrls;
+    private readonly IReturnConsignmentAndPackageService _returnConsignmentAndPackageService;
 
 
     public ReturnService(ILogger<ReturnService> logger, IReturnRepository returnRepository,
@@ -32,7 +33,8 @@ public class ReturnService : IReturnService
         IQuantityCheckService quantityCheckService, IOAuthClientService oAuthClientService,
         IValidatorWrapper<Return> returnValidator, IConsignmentService consignmentService,
         IValidatorWrapper<SearchTerm> searchTermValidator, IValidatorWrapper<ShipmentInfo> shipmentInfoValidator,
-        IValidatorWrapper<ReceivingReturnRequest> receivingReturnRequestValidator, IOptions<TrackingLinkBaseUrls> trackingLinkBaseUrls)
+        IValidatorWrapper<ReceivingReturnRequest> receivingReturnRequestValidator, IOptions<TrackingLinkBaseUrls> trackingLinkBaseUrls,
+        IReturnConsignmentAndPackageService returnConsignmentAndPackageService)
     {
         _logger = logger;
         _returnRepository = returnRepository;
@@ -46,6 +48,7 @@ public class ReturnService : IReturnService
         _shipmentInfoValidator = shipmentInfoValidator;
         _receivingReturnRequestValidator = receivingReturnRequestValidator;
         _trackingLinkBaseUrls = trackingLinkBaseUrls.Value;
+        _returnConsignmentAndPackageService = returnConsignmentAndPackageService;
     }
 
     public List<Return> ParseReturnResponseToReturnObject(ReturnResponse returnResponse)
@@ -783,5 +786,340 @@ public class ReturnService : IReturnService
         var baseUrl = carrier.Equals("DHL") ? _trackingLinkBaseUrls.DHL :
             carrier.Equals("DPD") ? _trackingLinkBaseUrls.DPD : string.Empty;
         return $"{baseUrl}{trackingId}";
+    }
+    
+    private async Task<Return> UpdateReturnEntriesQuantity(List<ShipmentInfo> requestShipmentInfo, Return returnObj)
+    {
+        for (int i = 0; i < requestShipmentInfo.Count; i++)
+        {
+            try
+            {
+                await _shipmentInfoValidator.ValidateAndThrowAsync(requestShipmentInfo[i]);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogError(ex, $"Validierungsfehler für ShipmentInfo an Position {i}: {ex.Message}");
+                throw;
+            }
+        }
+
+        foreach (var shipmentInfo in requestShipmentInfo)
+        {
+            var returnEntry = returnObj.ReturnEntries.FirstOrDefault(e => e.Id == shipmentInfo.ReturnEntryId);
+            if (returnEntry != null)
+            {
+                returnEntry.CanceledOrReturnedQuantity += shipmentInfo.Quantity;
+            }
+        }
+
+        try
+        {
+            await _returnValidator.ValidateAndThrowAsync(returnObj);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(ex, $"Validierungsfehler für Return: {ex.Message}");
+            throw;
+        }
+
+        return returnObj;
+    }
+    
+    private async Task UpdateReturnAsync(Return returnObj)
+    {
+        try
+        {
+            await _returnRepository.UpdateReturnAsync(returnObj);
+            _logger.LogInformation(
+                $"Die Retoure mit dem rma code '{returnObj.Rma}' wurde erfolgreich in der Datenbank aktualisiert.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren der Retoure mit dem rma code '{returnObj.Rma}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim beim aktualisieren der Retoure mit dem rma code '{returnObj.Rma}'.");
+            throw new ReturnServiceException(
+                $"Unerwarteter Fehler beim beim aktualisieren der Retoure mit dem rma code '{returnObj.Rma}'.", ex);
+        }
+    }
+    
+    private bool AllReturnEntriesAreReceiving(Return returnObjWithConsignmentsAndPackages)
+    {
+        return returnObjWithConsignmentsAndPackages.ReturnEntries.All(entry =>
+            entry.Quantity == entry.CanceledOrReturnedQuantity);
+    }
+    
+    public async Task UpdateReturnStatusAsync(int returnId, string status)
+    {
+        try
+        {
+            _logger.LogInformation(
+                $"Es wird versucht den Status der Return mit der Id '{returnId}' in der Datenbank auf '{status}' zu aktualisiert.");
+
+            await _returnRepository.UpdateReturnStatusByIdAsync(returnId, status);
+
+            _logger.LogInformation(
+                $"Der Status der Return mit der Id '{returnId}' wurde in der Datenbank erfolgreich auf '{status}' aktualisiert.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Status '{status}' für die Return mit der Id '{returnId}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren des Status '{status}' für die Return mit der Id '{returnId}'.");
+            throw new ReturnServiceException(
+                $"Unerwarteter Fehler beim aktualisieren des Status '{status}' für die Return mit der Id '{returnId}'.",
+                ex);
+        }
+    }
+    
+    public async Task UpdateReturnConsignmentAndPackagesStatusAsync(string consignmentCode, string status)
+    {
+        try
+        {
+            _logger.LogInformation(
+                $"Es wird versucht den Status der ReturnConsignment und ReturnPackages mit dem ConsignmentCode '{consignmentCode}' in der Datenbank auf '{status}' zu aktualisiert.");
+
+            await _returnRepository.UpdateReturnConsignmentAndPackagesStatusAsync(consignmentCode, status);
+
+            _logger.LogInformation(
+                $"Der Status der ReturnConsignment und ReturnPackages mit dem ConsignmentCode '{consignmentCode}' wurde in der Datenbank erfolgreich auf '{status}' aktualisiert.");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim aktualisieren des Status '{status}' für die ReturnConsignment und ReturnPackages mit dem ConsignmentCode '{consignmentCode}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren des Status '{status}' für die ReturnConsignment und ReturnPackages mit dem ConsignmentCode '{consignmentCode}'.");
+            throw new ReturnServiceException(
+                $"Unerwarteter Fehler beim aktualisieren des Status '{status}' für die ReturnConsignment und ReturnPackages mit dem ConsignmentCode '{consignmentCode}'.",
+                ex);
+        }
+    }
+    
+    public async Task UpdateReturnPackagesReceiptDeliveryAsync(string consignmentCode)
+    {
+        try
+        {
+            var returnConsignment = await _returnConsignmentAndPackageService.GetReturnConsignmentByConsignmentCodeAsync(consignmentCode);
+            DateTime receiptDelivery = DateTime.UtcNow;
+
+            foreach (var package in returnConsignment.Packages)
+            {
+                package.ReceiptDelivery = receiptDelivery;
+            }
+
+            await _returnConsignmentAndPackageService.UpdateReturnConsignmentAsync(returnConsignment);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                $"Fehler beim aktualisieren des ReceiptDelivery für ein die ReturnPackages der ReturnConsignment mit dem ConsignmentCode '{consignmentCode}'.");
+            throw new ReturnServiceException(
+                $"Fehler beim aktualisieren des ReceiptDelivery für ein die ReturnPackages der ReturnConsignment mit dem ConsignmentCode '{consignmentCode}'.",
+                ex);
+        }
+    }
+    
+    public async Task<bool> CheckIfAllConsignmentsAreReceived(int returnId)
+    {
+        var returnObj = await GetReturnByIdAsync(returnId);
+        if (returnObj == null)
+        {
+            _logger.LogError($"Return mit der Id '{returnId}' wurde in der Datenbank nicht gefunden.");
+            throw new ArgumentNullException($"Return mit der Id '{returnId}' wurde in der Datenbank nicht gefunden.");
+        }
+
+        // Zugriff auf ReturnEntries und dann auf ReturnConsignments und Packages
+        if (returnObj.ReturnEntries == null || !returnObj.ReturnEntries.Any())
+        {
+            _logger.LogError($"Keine ReturnEntries für die Return mit der Id '{returnId}' in der Datenbank gefunden.");
+            throw new ArgumentNullException(
+                $"Keine ReturnEntries für die Return mit der Id '{returnId}' in der Datenbank gefunden.");
+        }
+
+        foreach (var entry in returnObj.ReturnEntries)
+        {
+            if (entry.ReturnConsignments == null || !entry.ReturnConsignments.Any())
+            {
+                _logger.LogError(
+                    $"Keine ReturnConsignments für die Return mit der Id '{returnId}' in der Datenbank gefunden.");
+                throw new ArgumentNullException(
+                    $"Keine ReturnConsignments für die Return mit der Id '{returnId}' in der Datenbank gefunden.");
+            }
+
+            foreach (var consignment in entry.ReturnConsignments)
+            {
+                if (consignment.Status != SharedStatus.Received)
+                {
+                    return false;
+                }
+            }
+        }
+
+        // Alle Consignments haben den Status "RECEIVED"
+        return true;
+    }
+    
+    public async Task<bool> ProcessPackageStatusUpdateAsync(PackageStatusUpdateRequest request)
+    {
+        if (request == null)
+        {
+            throw new ArgumentNullException(nameof(request), "Die Anfrage enthält keine gültigen Daten.");
+        }
+
+        var returnObj = await GetReturnByIdAsync(request.ReturnId);
+        if (returnObj == null)
+        {
+            throw new ReturnIsNullException("Return ist null.");
+        }
+
+        bool apiResult = false;
+        if (request.Status.Equals(SharedStatus.Completed))
+        {
+            var completedReturnPackageRequest = CreateCompletedReturnPackageRequestAsync(returnObj);
+            apiResult = await _oAuthClientService.ReportReturnPackage(completedReturnPackageRequest);
+        }
+        else if (request.Status.Equals(SharedStatus.Canceled))
+        {
+            var canceledReturnPackageRequest = CreateCanceledReturnPackageRequestAsync(returnObj);
+            apiResult = await _oAuthClientService.ReportReturnPackage(canceledReturnPackageRequest);
+        }
+
+        if (apiResult)
+        {
+            await _returnConsignmentAndPackageService.UpdateAllReturnPackageStatusFromReturnAsync(SharedStatus.Completed, returnObj);
+            await _returnConsignmentAndPackageService.UpdateReturnConsignmentStatusQuantityAsync(request.Status, returnObj);
+            await _returnConsignmentAndPackageService.UpdateCompletedDateForAllReturnConsignments(returnObj);
+            await UpdateReturnStatusAsync(request.ReturnId, SharedStatus.Completed);
+        }
+        else
+        {
+            throw new Exception("Es ist ein unerwarteter API Fehler aufgetreten.");
+        }
+
+        return true;
+    }
+    
+    private ReportReturnPackageRequest CreateCompletedReturnPackageRequestAsync(Return returnObj)
+    {
+        if (returnObj == null)
+        {
+            _logger.LogError("Return darf nicht null sein.");
+            throw new ArgumentNullException(nameof(returnObj));
+        }
+
+        if (returnObj.CustomerInfo.Address == null)
+        {
+            _logger.LogError("Address darf nicht null sein.");
+            throw new ArgumentNullException(nameof(returnObj.CustomerInfo.Address));
+        }
+
+        var completedReturnPackageRequest = new ReportReturnPackageRequest
+        {
+            aldiReturnCode = returnObj.AldiReturnCode,
+            customerInfo = new ReportReturnPackageCustomerInfoRequest
+            {
+                emailAddress = returnObj.CustomerInfo.EmailAddress,
+                phoneNumber = returnObj.CustomerInfo.PhoneNumber ?? string.Empty,
+                address = new ReportReturnPackageAddressRequest
+                {
+                    countryIsoCode = returnObj.CustomerInfo.Address.CountryIsoCode,
+                    type = returnObj.CustomerInfo.Address.Type
+                }
+            },
+            entries = returnObj.ReturnEntries.Select(entry => new ReportReturnPackageEntryRequest
+            {
+                consignments = entry.ReturnConsignments.Select(consignment => new ReportReturnPackageConsignmentRequest
+                {
+                    carrier = consignment.Carrier,
+                    consignmentCode = consignment.ConsignmentCode,
+                    packages = consignment.Packages.Select(package => new ReportReturnPackageDetailsRequest
+                    {
+                        completedDate =
+                            package.ReturnConsignment.CompletedDate?.ToString("yyyy-MM-dd",
+                                CultureInfo.InvariantCulture) ?? string.Empty,
+                        receiptDelivery =
+                            package.ReceiptDelivery?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ??
+                            string.Empty,
+                        status = SharedStatus.Completed,
+                        trackingId = package.TrackingId,
+                        trackingLink = package.TrackingLink,
+                        vendorPackageCode = package.VendorPackageCode
+                    }).ToList(),
+                    quantity = consignment.Quantity
+                }).ToList(),
+                entryCode = entry.EntryCode ?? string.Empty,
+                notes = entry.Notes ?? string.Empty,
+                orderEntryNumber = entry.OrderEntryNumber,
+                quantity = entry.Quantity,
+                reason = entry.Reason ?? string.Empty
+            }).ToList(),
+            initiationDate = returnObj.InitiationDate.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture),
+            orderCode = returnObj.OrderCode
+        };
+
+        return completedReturnPackageRequest;
+    }
+    
+    private ReportReturnPackageRequest CreateCanceledReturnPackageRequestAsync(Return returnObj)
+    {
+        if (returnObj.CustomerInfo.Address == null)
+        {
+            _logger.LogError("Address darf nicht null sein.");
+            throw new ArgumentNullException(nameof(returnObj.CustomerInfo.Address));
+        }
+
+        var canceledReturnPackageRequest = new ReportReturnPackageRequest
+        {
+            aldiReturnCode = returnObj.AldiReturnCode,
+            customerInfo = new ReportReturnPackageCustomerInfoRequest
+            {
+                emailAddress = returnObj.CustomerInfo.EmailAddress,
+                address = new ReportReturnPackageAddressRequest
+                {
+                    countryIsoCode = returnObj.CustomerInfo.Address.CountryIsoCode,
+                    type = returnObj.CustomerInfo.Address.Type
+                }
+            },
+            entries = returnObj.ReturnEntries.Select(entry => new ReportReturnPackageEntryRequest
+            {
+                consignments = entry.ReturnConsignments.Select(consignment => new ReportReturnPackageConsignmentRequest
+                {
+                    carrier = consignment.Carrier,
+                    consignmentCode = consignment.ConsignmentCode,
+                    packages = consignment.Packages.Select(package => new ReportReturnPackageDetailsRequest
+                    {
+                        status = SharedStatus.Canceled,
+                        trackingId = package.TrackingId,
+                        trackingLink = package.TrackingLink,
+                        vendorPackageCode = package.VendorPackageCode
+                    }).ToList(),
+                    quantity = entry.Quantity
+                }).ToList(),
+                entryCode = entry.EntryCode ?? string.Empty,
+                notes = entry.Notes ?? string.Empty,
+                orderEntryNumber = entry.OrderEntryNumber,
+                quantity = entry.Quantity,
+                reason = entry.Reason ?? string.Empty
+            }).ToList(),
+            initiationDate = returnObj.InitiationDate.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture),
+            orderCode = returnObj.OrderCode
+        };
+
+        return canceledReturnPackageRequest;
     }
 }
