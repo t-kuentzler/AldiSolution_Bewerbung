@@ -6,6 +6,7 @@ using Shared.Logger;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
 using System.Runtime.InteropServices;
+using Shared.Models;
 
 namespace AldiOrderManagement
 {
@@ -49,7 +50,18 @@ namespace AldiOrderManagement
             builder.Services.AddSharedServices(builder.Configuration);
 
             var app = builder.Build();
+            
+            var env = app.Services.GetRequiredService<IWebHostEnvironment>();
+            var fileSettings = app.Services.GetRequiredService<IConfiguration>().GetSection("FileSettings").Get<FileSettings>();
 
+            if (fileSettings == null)
+            {
+                throw new InvalidOperationException("FileSettings configuration is missing.");
+            }
+
+            // Set the full path for the upload folder
+            fileSettings.UploadFolder = Path.Combine(env.ContentRootPath, fileSettings.UploadFolder);
+            
             // Check database connection
             await CheckDatabaseConnection(app);
 

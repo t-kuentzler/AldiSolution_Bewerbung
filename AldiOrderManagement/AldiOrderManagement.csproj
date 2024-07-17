@@ -28,4 +28,9 @@
       <_ContentIncludedByDefault Remove="Views\Shared\_ValidationScriptsPartial.cshtml" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="logs\" />
+      <Folder Include="wwwroot\downloads\" />
+    </ItemGroup>
+
 </Project>
