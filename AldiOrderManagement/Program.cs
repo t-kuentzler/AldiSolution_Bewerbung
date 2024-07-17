@@ -71,14 +71,6 @@ namespace AldiOrderManagement
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // Add Anti-Forgery Middleware
-            app.Use((context, next) =>
-            {
-                var tokens = context.RequestServices.GetService<IAntiforgery>().GetAndStoreTokens(context);
-                context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken, new CookieOptions { HttpOnly = false });
-                return next();
-            });
-
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
