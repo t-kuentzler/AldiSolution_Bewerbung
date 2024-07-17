@@ -12,9 +12,9 @@ using Shared.Services;
 using Shared.Validation;
 using FluentValidation;
 using System.Net.Mail;
-using AldiOrderManagement.Helpers;
 using AldiOrderManagement.Validation;
 using Microsoft.AspNetCore.Identity;
+using PdfSharp.Fonts;
 
 namespace Shared
 {
@@ -150,7 +150,8 @@ namespace Shared
             services.AddTransient<IValidator<ReceivingReturnResponse>, ReceivingReturnResponseValidator>();
 
             // Font Resolver
-            services.AddSingleton<PdfSharp.Fonts.IFontResolver, CustomFontResolver>();
+            services.AddSingleton<IFontResolver, CustomFontResolver>();
+            services.AddSingleton<IFontResolver>(provider => provider.GetRequiredService<CustomFontResolver>());
 
             services.AddSingleton<SmtpClient>();
         }

@@ -6,7 +6,9 @@ using Shared.Logger;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
 using System.Runtime.InteropServices;
+using PdfSharp.Fonts;
 using Shared.Models;
+using Shared.Helpers;
 
 namespace AldiOrderManagement
 {
@@ -29,7 +31,7 @@ namespace AldiOrderManagement
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
-            builder.Services.AddRazorPages(); 
+            builder.Services.AddRazorPages();
             builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 
             // Data Protection Configuration
@@ -49,19 +51,31 @@ namespace AldiOrderManagement
             // Register shared services
             builder.Services.AddSharedServices(builder.Configuration);
 
-            var app = builder.Build();
-            
-            var env = app.Services.GetRequiredService<IWebHostEnvironment>();
-            var fileSettings = app.Services.GetRequiredService<IConfiguration>().GetSection("FileSettings").Get<FileSettings>();
-
+            // Configure FileSettings
+            var fileSettings = builder.Configuration.GetSection("FileSettings").Get<FileSettings>();
             if (fileSettings == null)
             {
                 throw new InvalidOperationException("FileSettings configuration is missing.");
             }
 
             // Set the full path for the upload folder
+            var env = builder.Environment;
             fileSettings.UploadFolder = Path.Combine(env.ContentRootPath, fileSettings.UploadFolder);
-            
+            fileSettings.FontsFolder = Path.Combine(env.ContentRootPath, fileSettings.FontsFolder);
+
+            // Register FileSettings
+            builder.Services.Configure<FileSettings>(options =>
+            {
+                options.UploadFolder = fileSettings.UploadFolder;
+                options.FontsFolder = fileSettings.FontsFolder;
+            });
+
+            // Register CustomFontResolver
+            builder.Services.AddSingleton<CustomFontResolver>();
+            builder.Services.AddSingleton<IFontResolver>(provider => provider.GetRequiredService<CustomFontResolver>());
+
+            var app = builder.Build();
+
             // Check database connection
             await CheckDatabaseConnection(app);
 
