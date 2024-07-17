@@ -174,4 +174,66 @@ public class ReturnRepository : IReturnRepository
                 ex);
         }
     }
+    
+    public async Task UpdateReturnAsync(Return returnObj)
+    {
+        try
+        {
+            _applicationDbContext.Return.Update(returnObj);
+            await _applicationDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren der Retoure mit der Id '{returnObj.Id}'.",
+                ex);
+        }
+    }
+    
+    public async Task UpdateReturnStatusByIdAsync(int returnId, string status)
+    {
+        try
+        {
+            var returnObj = await _applicationDbContext.Return.FirstOrDefaultAsync(o => o.Id == returnId);
+            if (returnObj != null)
+            {
+                returnObj.Status = status;
+                _applicationDbContext.Return.Update(returnObj);
+                await _applicationDbContext.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren des Status für die Return mit der Id '{returnId}'.",
+                ex);
+        }
+    }
+    
+    public async Task UpdateReturnConsignmentAndPackagesStatusAsync(string consignmentCode, string status)
+    {
+        try
+        {
+            var returnConsignment =
+                await _applicationDbContext.ReturnConsignment.Include(rc => rc.Packages).FirstOrDefaultAsync(o =>
+                    o.ConsignmentCode == consignmentCode);
+            if (returnConsignment != null)
+            {
+                returnConsignment.Status = status;
+
+                foreach (var package in returnConsignment.Packages)
+                {
+                    package.Status = status;
+                }
+
+                await _applicationDbContext.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren des Status für die ReturnConsignment und ReturnPackages mit dem ConsignmentCode '{consignmentCode}'.",
+                ex);
+        }
+    }
 }

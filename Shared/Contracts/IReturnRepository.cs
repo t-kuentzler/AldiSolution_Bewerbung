@@ -16,4 +16,7 @@ public interface IReturnRepository
 
     Task UpdateReturnConsignmentAsync(ReturnConsignment returnConsignment);
     Task<ReturnConsignment?> GetReturnConsignmentByConsignmentCodeAsync(string consignmentCode);
+    Task UpdateReturnAsync(Return returnObj);
+    Task UpdateReturnStatusByIdAsync(int returnId, string status);
+    Task UpdateReturnConsignmentAndPackagesStatusAsync(string consignmentCode, string status);
 }
