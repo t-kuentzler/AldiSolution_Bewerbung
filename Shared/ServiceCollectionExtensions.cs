@@ -1,4 +1,5 @@
 using System.Net.Mail;
+using AldiOrderManagement.Validation;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -128,6 +129,12 @@ namespace Shared
             services.AddTransient<IValidator<ReceivingReturnPackagesRequest>, ReceivingReturnPackagesRequestValidator>();
             services.AddTransient<IValidator<ReceivingReturnRequest>, ReceivingReturnRequestValidator>();
             services.AddTransient<IValidator<ProcessCancellationEntry>, ProcessCancellationEntryValidator>();
+            services.AddTransient<IValidator<ReceivingReturnAddressResponse>, ReceivingReturnAddressResponseValidator>();
+            services.AddTransient<IValidator<ReceivingReturnConsignmentsResponse>, ReceivingReturnConsignmentsResponseValidator>();
+            services.AddTransient<IValidator<ReceivingReturnCustomerInfoResponse>, ReceivingReturnCustomerInfoResponseValidator>();
+            services.AddTransient<IValidator<ReceivingReturnEntriesResponse>, ReceivingReturnEntriesResponseValidator>();
+            services.AddTransient<IValidator<ReceivingReturnPackagesResponse>, ReceivingReturnPackagesResponseValidator>();
+            services.AddTransient<IValidator<ReceivingReturnResponse>, ReceivingReturnResponseValidator>();
             
             services.AddSingleton<SmtpClient>();
 
