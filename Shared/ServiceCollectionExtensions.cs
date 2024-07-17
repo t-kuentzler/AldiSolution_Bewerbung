@@ -61,6 +61,11 @@ namespace Shared
                 configuration.GetSection("DhlSettings").Bind(options);
                 options.ApiKey = Environment.GetEnvironmentVariable("MAGMA_DHL_API_KEY");
             });
+            
+            services.Configure<FileSettings>(options =>
+            {
+                configuration.GetSection("FileSettings").Bind(options);
+            });
 
             // Services
             services.AddScoped<IOrderService, OrderService>();
@@ -82,7 +87,7 @@ namespace Shared
             services.AddScoped<IExcelWorkbook, ExcelWorkbook>();
             services.AddScoped<IFileWrapper, FileWrapper>();
             services.AddScoped<IGuidGenerator, GuidGenerator>();
-            services.AddScoped<IFileMapping, FileMapping>();
+            services.AddSingleton<IFileMapping, FileMapping>();
             services.AddScoped<IImageLoader, ImageLoader>();
             services.AddScoped<IStatisticService, StatisticService>();
             services.AddScoped<IReturnConsignmentAndPackageService, ReturnConsignmentAndPackageService>();
