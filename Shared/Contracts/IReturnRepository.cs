@@ -13,4 +13,7 @@ public interface IReturnRepository
 
     Task UpdateReturnConsignmentStatusQuantityAsync(string packageStatus, int packageQuantity,
         string requestConsignmentCode);
+
+    Task UpdateReturnConsignmentAsync(ReturnConsignment returnConsignment);
+    Task<ReturnConsignment?> GetReturnConsignmentByConsignmentCodeAsync(string consignmentCode);
 }

@@ -144,4 +144,34 @@ public class ReturnRepository : IReturnRepository
                 ex);
         }
     }
+    
+    public async Task UpdateReturnConsignmentAsync(ReturnConsignment returnConsignment)
+    {
+        try
+        {
+            _applicationDbContext.ReturnConsignment.Update(returnConsignment);
+            await _applicationDbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren der ReturnConsignment mit der Id '{returnConsignment.Id}'.",
+                ex);
+        }
+    }
+    
+    public async Task<ReturnConsignment?> GetReturnConsignmentByConsignmentCodeAsync(string consignmentCode)
+    {
+        try
+        {
+            return await _applicationDbContext.ReturnConsignment
+                .FirstOrDefaultAsync(rc => rc.ConsignmentCode == consignmentCode);
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten. ReturnConsignment mit ConsignmentCode '{consignmentCode}'.",
+                ex);
+        }
+    }
 }
