@@ -551,4 +551,29 @@ public class ReturnService : IReturnService
             throw new ReturnServiceException($"Unerwarteter Fehler beim Abrufen von Retouren.", ex);
         }
     }
+    
+    public async Task<Return?> GetReturnByIdAsync(int returnId)
+    {
+        if (returnId <= 0)
+        {
+            _logger.LogError($"'{nameof(returnId)}' muss größer als 0 sein.");
+            throw new ArgumentException($"'{nameof(returnId)}' muss größer als 0 sein.");
+        }
+
+        try
+        {
+            return await _returnRepository.GetReturnByIdAsync(returnId);
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex, $"Repository-Exception beim Abrufen von Retoure mit der Id '{returnId}'.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Unerwarteter Fehler beim Abrufen von Retoure mit dem Status '{returnId}'.");
+            throw new ReturnServiceException(
+                $"Unerwarteter Fehler beim Abrufen von Retoure mit dem Status '{returnId}'.", ex);
+        }
+    }
 }

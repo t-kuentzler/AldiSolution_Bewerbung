@@ -70,4 +70,25 @@ public class ReturnRepository : IReturnRepository
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Status: '{status}'", ex);
         }
     }
+    
+    public async Task<Return?> GetReturnByIdAsync(int returnId)
+    {
+        try
+        {
+            return await _applicationDbContext.Return
+                .Include(r => r.CustomerInfo)
+                .ThenInclude(ci => ci.Address)
+                .Include(r => r.ReturnEntries)
+                .ThenInclude(re => re.ReturnConsignments)
+                .ThenInclude(rc => rc.Packages)
+                .Include(r => r.Order)
+                .ThenInclude(o => o.Entries)
+                .FirstOrDefaultAsync(r => r.Id == returnId);
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Return mit der Id '{returnId}'.",
+                ex);
+        }
+    }
 }
