@@ -26,11 +26,11 @@ public class FileService : IFileService
         private readonly IGuidGenerator _guidGenerator;
         private readonly IFileMapping _fileMapping;
         private readonly IImageLoader _imageLoader;
-
+        private readonly FileSettings _fileSettings;
 
         public FileService(ILogger<FileService> logger, IOptions<CustomerSettings> customerSettings,
             IFontResolver fontResolver, IExcelWorkbook excelWorkbook, IFileWrapper fileWrapper,
-            IGuidGenerator guidGenerator, IFileMapping fileMapping, IImageLoader imageLoader)
+            IGuidGenerator guidGenerator, IFileMapping fileMapping, IImageLoader imageLoader, IOptions<FileSettings> fileSettings)
         {
             _logger = logger;
             _customerSettings = customerSettings.Value;
@@ -40,6 +40,7 @@ public class FileService : IFileService
             _guidGenerator = guidGenerator;
             _fileMapping = fileMapping;
             _imageLoader = imageLoader;
+            _fileSettings = fileSettings.Value;
         }
 
         public byte[] CreateExcelFileInProgressOrders(List<Order> orders)
@@ -147,7 +148,7 @@ public class FileService : IFileService
 
         public string SaveFileOnServer(byte[] content)
         {
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "downloads");
+            var uploadsFolder = _fileSettings.UploadFolder;
 
             try
             {
@@ -164,20 +165,20 @@ public class FileService : IFileService
 
                 _fileMapping.SetFilePath(fileId, filePath);
 
+                // Log the file path to ensure it is saved correctly
+                _logger.LogInformation($"Datei wurde unter dem Pfad '{filePath}' mit der fileId '{fileId}' gespeichert.");
+
                 return fileId;
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "Fehler beim Speichern der Datei im Verzeichnis {UploadsFolder}", uploadsFolder);
-                throw new FileSaveException(
-                    $"Ein Fehler ist aufgetreten beim Speichern der Datei im Verzeichnis {uploadsFolder}.", ex);
+                throw new FileSaveException($"Ein Fehler ist aufgetreten beim Speichern der Datei im Verzeichnis {uploadsFolder}.", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
-                _logger.LogError(ex, "Zugriff verweigert beim Speichern der Datei im Verzeichnis {UploadsFolder}",
-                    uploadsFolder);
-                throw new FileSaveException(
-                    $"Zugriff verweigert beim Speichern der Datei im Verzeichnis {uploadsFolder}.", ex);
+                _logger.LogError(ex, "Zugriff verweigert beim Speichern der Datei im Verzeichnis {UploadsFolder}", uploadsFolder);
+                throw new FileSaveException($"Zugriff verweigert beim Speichern der Datei im Verzeichnis {uploadsFolder}.", ex);
             }
             catch (Exception ex)
             {
@@ -191,7 +192,7 @@ public class FileService : IFileService
             var filePath = _fileMapping.GetFilePath(fileId);
             if (string.IsNullOrEmpty(filePath))
             {
-                _logger.LogWarning($"Der filePath mit der FileId '{fileId}' ist null.");
+                _logger.LogError($"Der filePath mit der FileId '{fileId}' ist null.");
                 return string.Empty;
             }
             return filePath;
