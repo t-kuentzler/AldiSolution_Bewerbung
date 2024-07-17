@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Exceptions;
@@ -88,6 +89,58 @@ public class ReturnRepository : IReturnRepository
         catch (Exception ex)
         {
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Return mit der Id '{returnId}'.",
+                ex);
+        }
+    }
+    
+    public async Task UpdateReturnPackageStatusAsync(string packageStatus, int packageId)
+    {
+        try
+        {
+            var returnPackage =
+                await _applicationDbContext.ReturnPackage.FirstOrDefaultAsync(o =>
+                    o.Id == packageId);
+            if (returnPackage != null)
+            {
+                returnPackage.Status = packageStatus;
+
+                await _applicationDbContext.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren des Status für das ReturnPackage mit der Id '{packageId}'.",
+                ex);
+        }
+    }
+    
+    public async Task UpdateReturnConsignmentStatusQuantityAsync(string packageStatus, int packageQuantity,
+        string requestConsignmentCode)
+    {
+        try
+        {
+            var returnConsignment =
+                await _applicationDbContext.ReturnConsignment.FirstOrDefaultAsync(o =>
+                    o.ConsignmentCode == requestConsignmentCode);
+            if (returnConsignment != null)
+            {
+                if (packageStatus.Equals(SharedStatus.Canceled))
+                {
+                    returnConsignment.CanceledQuantity += packageQuantity;
+                }
+                else if (packageStatus.Equals(SharedStatus.Completed))
+                {
+                    returnConsignment.CompletedQuantity += packageQuantity;
+                }
+
+                await _applicationDbContext.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new RepositoryException(
+                $"Ein unerwarteter Fehler ist aufgetreten beim aktualisieren der {packageStatus} Quantity für das ReturnConsignment mit dem ConsignmentCode '{requestConsignmentCode}'.",
                 ex);
         }
     }
