@@ -10,11 +10,11 @@ using Shared;
 
 #nullable disable
 
-namespace AldiOrderManagement.Migrations
+namespace Shared.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240618131348_ChangedReturnEntryNotesLengthTo500")]
-    partial class ChangedReturnEntryNotesLengthTo500
+    [Migration("20240610082901_ChangedDeliveryAddressStreetNumberLengthTo100")]
+    partial class ChangedDeliveryAddressStreetNumberLengthTo100
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -62,13 +62,13 @@ namespace AldiOrderManagement.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PackstationNumber")
                         .HasMaxLength(20)
@@ -100,8 +100,8 @@ namespace AldiOrderManagement.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("StreetNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Town")
                         .IsRequired()
@@ -544,8 +544,8 @@ namespace AldiOrderManagement.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("OrderEntryNumber")
                         .HasColumnType("int");
@@ -628,13 +628,13 @@ namespace AldiOrderManagement.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("PackstationNumber")
                         .HasMaxLength(30)
@@ -667,8 +667,8 @@ namespace AldiOrderManagement.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("StreetNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
 
                     b.Property<string>("Town")
                         .IsRequired()

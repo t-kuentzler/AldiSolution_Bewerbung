@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace AldiOrderManagement.Migrations
+namespace Shared.Migrations
 {
     public partial class ChangedConsignmentAldiConsignmentCodeToNullabe2 : Migration
     {

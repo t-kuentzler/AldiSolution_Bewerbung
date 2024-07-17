@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace AldiOrderManagement.Migrations
+namespace Shared.Migrations
 {
     /// <inheritdoc />
     public partial class ChangedAddressFirstNameAndLastNameAndStreeNumberLength : Migration

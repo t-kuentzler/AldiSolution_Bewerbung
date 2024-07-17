@@ -10,11 +10,11 @@ using Shared;
 
 #nullable disable
 
-namespace AldiOrderManagement.Migrations
+namespace Shared.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240608154303_ChangedDeliveryAddressFirstNameAndLastNameLengthTo150")]
-    partial class ChangedDeliveryAddressFirstNameAndLastNameLengthTo150
+    [Migration("20240612130651_ChangedShippingAddressStreetNumberLengthTo100")]
+    partial class ChangedShippingAddressStreetNumberLengthTo100
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -300,8 +300,8 @@ namespace AldiOrderManagement.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("StreetNumber")
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Town")
                         .IsRequired()
@@ -667,8 +667,8 @@ namespace AldiOrderManagement.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("StreetNumber")
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Town")
                         .IsRequired()

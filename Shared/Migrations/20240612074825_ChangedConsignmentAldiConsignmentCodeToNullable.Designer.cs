@@ -10,7 +10,7 @@ using Shared;
 
 #nullable disable
 
-namespace AldiOrderManagement.Migrations
+namespace Shared.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20240612074825_ChangedConsignmentAldiConsignmentCodeToNullable")]

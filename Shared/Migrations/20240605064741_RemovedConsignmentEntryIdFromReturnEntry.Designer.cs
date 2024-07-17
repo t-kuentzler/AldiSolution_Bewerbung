@@ -10,11 +10,11 @@ using Shared;
 
 #nullable disable
 
-namespace AldiOrderManagement.Migrations
+namespace Shared.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240604125652_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20240605064741_RemovedConsignmentEntryIdFromReturnEntry")]
+    partial class RemovedConsignmentEntryIdFromReturnEntry
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -539,9 +539,6 @@ namespace AldiOrderManagement.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("ConsignmentEntryId")
-                        .HasColumnType("int");
-
                     b.Property<string>("EntryCode")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -569,8 +566,6 @@ namespace AldiOrderManagement.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ConsignmentEntryId");
 
                     b.HasIndex("ReturnId");
 
@@ -792,12 +787,6 @@ namespace AldiOrderManagement.Migrations
 
             modelBuilder.Entity("AldiOrderManagement.Entities.ReturnEntry", b =>
                 {
-                    b.HasOne("AldiOrderManagement.Entities.ConsignmentEntry", null)
-                        .WithMany()
-                        .HasForeignKey("ConsignmentEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("AldiOrderManagement.Entities.Return", "Return")
                         .WithMany("ReturnEntries")
                         .HasForeignKey("ReturnId")

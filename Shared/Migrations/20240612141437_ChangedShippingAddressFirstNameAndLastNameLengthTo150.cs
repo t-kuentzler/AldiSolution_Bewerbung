@@ -2,17 +2,17 @@
 
 #nullable disable
 
-namespace AldiOrderManagement.Migrations
+namespace Shared.Migrations
 {
     /// <inheritdoc />
-    public partial class ChangedDeliveryAddressFirstNameAndLastNameLengthTo150 : Migration
+    public partial class ChangedShippingAddressFirstNameAndLastNameLengthTo150 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<string>(
                 name: "LastName",
-                table: "DeliveryAddress",
+                table: "ShippingAddress",
                 type: "nvarchar(150)",
                 maxLength: 150,
                 nullable: false,
@@ -22,7 +22,7 @@ namespace AldiOrderManagement.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "FirstName",
-                table: "DeliveryAddress",
+                table: "ShippingAddress",
                 type: "nvarchar(150)",
                 maxLength: 150,
                 nullable: false,
@@ -36,7 +36,7 @@ namespace AldiOrderManagement.Migrations
         {
             migrationBuilder.AlterColumn<string>(
                 name: "LastName",
-                table: "DeliveryAddress",
+                table: "ShippingAddress",
                 type: "nvarchar(50)",
                 maxLength: 50,
                 nullable: false,
@@ -46,7 +46,7 @@ namespace AldiOrderManagement.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "FirstName",
-                table: "DeliveryAddress",
+                table: "ShippingAddress",
                 type: "nvarchar(50)",
                 maxLength: 50,
                 nullable: false,
