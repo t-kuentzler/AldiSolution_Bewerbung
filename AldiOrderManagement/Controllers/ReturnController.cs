@@ -1,10 +1,11 @@
-using AldiOrderManagement.Constants;
-using AldiOrderManagement.Entities;
-using AldiOrderManagement.Exceptions;
-using AldiOrderManagement.Mappings;
-using AldiOrderManagement.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Constants;
+using Shared.Contracts;
+using Shared.Entities;
+using Shared.Exceptions;
+using Shared.Mappings;
+using Shared.Models;
 
 
 namespace AldiOrderManagement.Controllers;
@@ -12,15 +13,13 @@ namespace AldiOrderManagement.Controllers;
 public class ReturnController : Controller
 {
     private readonly IReturnService _returnService;
-    private readonly IOAuthClientService _oAuthClientService;
     private readonly ILogger<ReturnController> _logger;
     private readonly IFileService _fileService;
 
-    public ReturnController(IReturnService returnService, IOAuthClientService oAuthClientService, 
-        ILogger<ReturnController> logger, IFileService fileService)
+    public ReturnController(IReturnService returnService, ILogger<ReturnController> logger, 
+        IFileService fileService)
     {
         _returnService = returnService;
-        _oAuthClientService = oAuthClientService;
         _logger = logger;
         _fileService = fileService;
     }
