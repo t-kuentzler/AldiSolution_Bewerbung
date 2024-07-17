@@ -38,15 +38,18 @@ public class ConsignmentRepository : IConsignmentRepository
     {
         try
         {
-            var consignment = await _applicationDbContext.Consignment.FindAsync(consignmentId);
-
-            return consignment;
+            return await _applicationDbContext.Consignment
+                .Include(c => c.ShippingAddress)
+                // .Include(c => c.Order)
+                .Include(c => c.ConsignmentEntries)
+                .ThenInclude(ce => ce.OrderEntry) 
+                .ThenInclude(da => da.DeliveryAddress)
+                .FirstOrDefaultAsync(c => c.Id == consignmentId);
         }
         catch (Exception ex)
         {
             throw new RepositoryException(
-                $"Ein unerwarteter Fehler ist beim Abrufen des Consignment mit der ID '{consignmentId}' aufgetreten.",
-                ex);
+                $"Ein unerwarteter Fehler ist aufgetreten. ConsignmentId: '{consignmentId}'.", ex);
         }
     }
 
