@@ -127,6 +127,7 @@ namespace Shared
             services.AddTransient<IValidator<ReceivingReturnEntriesRequest>, ReceivingReturnEntriesRequestValidator>();
             services.AddTransient<IValidator<ReceivingReturnPackagesRequest>, ReceivingReturnPackagesRequestValidator>();
             services.AddTransient<IValidator<ReceivingReturnRequest>, ReceivingReturnRequestValidator>();
+            services.AddTransient<IValidator<ProcessCancellationEntry>, ProcessCancellationEntryValidator>();
             
             services.AddSingleton<SmtpClient>();
 
