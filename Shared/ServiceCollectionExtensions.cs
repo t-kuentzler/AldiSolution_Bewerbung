@@ -66,6 +66,11 @@ namespace Shared
             {
                 configuration.GetSection("FileSettings").Bind(options);
             });
+            
+            services.Configure<CustomerSettings>(options =>
+            {
+                configuration.GetSection("CustomerSettings").Bind(options);
+            });
 
             // Services
             services.AddScoped<IOrderService, OrderService>();
