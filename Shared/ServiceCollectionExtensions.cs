@@ -14,6 +14,7 @@ using FluentValidation;
 using System.Net.Mail;
 using AldiOrderManagement.Helpers;
 using AldiOrderManagement.Validation;
+using Microsoft.AspNetCore.Identity;
 
 namespace Shared
 {
@@ -27,6 +28,10 @@ namespace Shared
             {
                 services.AddDbContext<ApplicationDbContext>(options =>
                     options.UseSqlServer(connectionString));
+                
+                services.AddIdentity<IdentityUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = false)
+                    .AddEntityFrameworkStores<ApplicationDbContext>()
+                    .AddDefaultTokenProviders();
             }
             else
             {
