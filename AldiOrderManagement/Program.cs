@@ -27,9 +27,8 @@ namespace AldiOrderManagement
                 .AddEnvironmentVariables();
 
             // Add services to the container.
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
+            builder.Services.AddRazorPages(); 
             builder.Services.AddAntiforgery(options => options.HeaderName = "X-XSRF-TOKEN");
 
             // Data Protection Configuration
