@@ -18,4 +18,5 @@ public interface IReturnService
     Task<List<Return>> SearchReturnsAsync(SearchTerm searchTerm, List<string> statuses);
     Task<List<Return>> GetAllReturnsByStatusesAsync(List<string> statuses);
     Task<Return?> GetReturnByIdAsync(int returnId);
+    List<ShipmentInfo?> CreateShipmentInfos(Return returnObj);
 }

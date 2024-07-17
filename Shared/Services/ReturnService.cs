@@ -576,4 +576,41 @@ public class ReturnService : IReturnService
                 $"Unerwarteter Fehler beim Abrufen von Retoure mit dem Status '{returnId}'.", ex);
         }
     }
+    
+    public List<ShipmentInfo?> CreateShipmentInfos(Return returnObj)
+    {
+        List<ShipmentInfo?> shipmentInfos = new List<ShipmentInfo?>();
+
+        foreach (var returnEntry in returnObj.ReturnEntries)
+        {
+            foreach (var returnConsignment in returnEntry.ReturnConsignments)
+            {
+                foreach (var returnPackage in returnConsignment.Packages)
+                {
+                    var orderEntry = returnObj.Order.Entries.FirstOrDefault(oe =>
+                        oe.EntryNumber == returnEntry.OrderEntryNumber &&
+                        oe.OrderId == returnObj.Order.Id);
+
+                    if (orderEntry == null)
+                    {
+                        throw new ArgumentNullException(nameof(orderEntry));
+                    }
+
+                    ShipmentInfo shipmentInfo = new ShipmentInfo()
+                    {
+                        ProductCode = orderEntry.VendorProductCode,
+                        Reason = returnEntry.Reason ?? string.Empty,
+                        TrackingNumber = returnPackage.TrackingId,
+                        Carrier = returnConsignment.Carrier,
+                        Quantity = returnConsignment.Quantity,
+                        ReturnEntryId = returnEntry.Id
+                    };
+
+                    shipmentInfos.Add(shipmentInfo);
+                }
+            }
+        }
+
+        return shipmentInfos;
+    }
 }
