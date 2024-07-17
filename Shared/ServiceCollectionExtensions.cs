@@ -1,6 +1,3 @@
-using System.Net.Mail;
-using AldiOrderManagement.Validation;
-using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +10,10 @@ using Shared.Models;
 using Shared.Repositories;
 using Shared.Services;
 using Shared.Validation;
-using AccessTokenService = Shared.Services.AccessTokenService;
+using FluentValidation;
+using System.Net.Mail;
+using AldiOrderManagement.Helpers;
+using AldiOrderManagement.Validation;
 
 namespace Shared
 {
@@ -37,26 +37,26 @@ namespace Shared
             // Add HttpClient factory
             services.AddHttpClient();
 
-            //Appsettings
+            // Appsettings
             services.Configure<OAuthSettings>(options =>
             {
                 configuration.GetSection("OAuthSettings").Bind(options);
                 options.Secret = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_CLIENTSECRET_TEST");
                 options.Password = Environment.GetEnvironmentVariable("MAGMA_ALDI_OAUTH_PASSWORD_TEST");
             });
-            
+
             services.Configure<EmailConfiguration>(options =>
             {
                 configuration.GetSection("EmailConfiguration").Bind(options);
                 options.SenderPassword = Environment.GetEnvironmentVariable("MAGMA_SMTP_PASSWORD");
             });
-            
-           services.Configure<DhlSettings>(options =>
+
+            services.Configure<DhlSettings>(options =>
             {
                 configuration.GetSection("DhlSettings").Bind(options);
                 options.ApiKey = Environment.GetEnvironmentVariable("MAGMA_DHL_API_KEY");
             });
-           
+
             // Services
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IAccessTokenService, AccessTokenService>();
@@ -77,23 +77,21 @@ namespace Shared
             services.AddScoped<IExcelWorkbook, ExcelWorkbook>();
             services.AddScoped<IFileWrapper, FileWrapper>();
             services.AddScoped<IGuidGenerator, GuidGenerator>();
-            services.AddSingleton<IFileMapping, FileMapping>();
-            services.AddSingleton<IImageLoader, ImageLoader>();
-            services.AddSingleton<IStatisticService, StatisticService>();
-            services.AddSingleton<IReturnConsignmentAndPackageService, ReturnConsignmentAndPackageService>();
-            
+            services.AddScoped<IFileMapping, FileMapping>();
+            services.AddScoped<IImageLoader, ImageLoader>();
+            services.AddScoped<IStatisticService, StatisticService>();
+            services.AddScoped<IReturnConsignmentAndPackageService, ReturnConsignmentAndPackageService>();
+
             // Repositories
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
             services.AddScoped<IReturnRepository, ReturnRepository>();
-            services.AddSingleton<IStatisticRepository, StatisticRepository>();
+            services.AddScoped<IStatisticRepository, StatisticRepository>();
 
-            //Generator
-            services.AddScoped<IConsignmentRepository, ConsignmentRepository>();
+            // Generator
             services.AddScoped<IRmaNumberGenerator, RandomRmaNumberGenerator>();
 
-            
             // OAuth Client Service Factory
             services.AddScoped<IOAuthClientServiceFactory, OAuthClientServiceFactory>();
 
@@ -135,9 +133,11 @@ namespace Shared
             services.AddTransient<IValidator<ReceivingReturnEntriesResponse>, ReceivingReturnEntriesResponseValidator>();
             services.AddTransient<IValidator<ReceivingReturnPackagesResponse>, ReceivingReturnPackagesResponseValidator>();
             services.AddTransient<IValidator<ReceivingReturnResponse>, ReceivingReturnResponseValidator>();
-            
-            services.AddSingleton<SmtpClient>();
 
+            // Font Resolver
+            services.AddSingleton<PdfSharp.Fonts.IFontResolver, CustomFontResolver>();
+
+            services.AddSingleton<SmtpClient>();
         }
     }
 }
