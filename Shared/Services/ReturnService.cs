@@ -7,6 +7,7 @@ using Shared.Entities;
 using Shared.Exceptions;
 using Shared.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Shared.Services;
 
@@ -21,12 +22,17 @@ public class ReturnService : IReturnService
     private readonly IValidatorWrapper<Return> _returnValidator;
     private readonly IConsignmentService _consignmentService;
     private readonly IValidatorWrapper<SearchTerm> _searchTermValidator;
+    private readonly IValidatorWrapper<ShipmentInfo> _shipmentInfoValidator;
+    private readonly IValidatorWrapper<ReceivingReturnRequest> _receivingReturnRequestValidator;
+    private readonly TrackingLinkBaseUrls _trackingLinkBaseUrls;
+
 
     public ReturnService(ILogger<ReturnService> logger, IReturnRepository returnRepository,
         IRmaNumberGenerator rmaNumberGenerator, IOrderService orderService,
         IQuantityCheckService quantityCheckService, IOAuthClientService oAuthClientService,
         IValidatorWrapper<Return> returnValidator, IConsignmentService consignmentService,
-        IValidatorWrapper<SearchTerm> searchTermValidator)
+        IValidatorWrapper<SearchTerm> searchTermValidator, IValidatorWrapper<ShipmentInfo> shipmentInfoValidator,
+        IValidatorWrapper<ReceivingReturnRequest> receivingReturnRequestValidator, IOptions<TrackingLinkBaseUrls> trackingLinkBaseUrls)
     {
         _logger = logger;
         _returnRepository = returnRepository;
@@ -37,6 +43,9 @@ public class ReturnService : IReturnService
         _returnValidator = returnValidator;
         _consignmentService = consignmentService;
         _searchTermValidator = searchTermValidator;
+        _shipmentInfoValidator = shipmentInfoValidator;
+        _receivingReturnRequestValidator = receivingReturnRequestValidator;
+        _trackingLinkBaseUrls = trackingLinkBaseUrls.Value;
     }
 
     public List<Return> ParseReturnResponseToReturnObject(ReturnResponse returnResponse)
@@ -612,5 +621,167 @@ public class ReturnService : IReturnService
         }
 
         return shipmentInfos;
+    }
+    
+    public async Task ProcessShipmentInfoCreation(ShipmentInfoAndReturnIdRequest request)
+    {
+        if (request == null)
+        {
+            throw new ArgumentNullException(nameof(request), "Die Anfrage darf nicht null sein.");
+        }
+
+        var returnObj = await GetReturnByIdAsync(request.ReturnId);
+        if (returnObj == null)
+        {
+            throw new ReturnIsNullException("Das zugehörige Return-Objekt wurde nicht gefunden.");
+        }
+
+        // Vorbereitung des Request-Objekts für die API
+        var parsedReceivingReturnRequest = await ParseShipmentInfoAndReturnToReceivingReturnRequest(
+            request.ShipmentInfo, returnObj
+        );
+
+        // Senden der Daten an die API
+        var (apiResult, receivingReturnResponse) = await _oAuthClientService.CreateReceivingReturn(parsedReceivingReturnRequest);
+
+        if (!apiResult)
+        {
+            throw new Exception("Fehler bei der Kommunikation mit der API.");
+        }
+
+        // Verarbeiten der API-Antwort und Aktualisieren der Datenbank
+        var returnObjWithConsignmentsAndPackages = await _returnConsignmentAndPackageService.CreateReturnConsignmentAndReturnPackage(
+            receivingReturnResponse, returnObj
+        );
+        
+        returnObjWithConsignmentsAndPackages =
+            await UpdateReturnEntriesQuantity(request.ShipmentInfo, returnObj);
+
+        await UpdateReturnAsync(returnObjWithConsignmentsAndPackages);
+        
+        var allEntriesAreReceiving = AllReturnEntriesAreReceiving(returnObjWithConsignmentsAndPackages);
+        if (allEntriesAreReceiving)
+        {
+            await UpdateReturnStatusAsync(returnObjWithConsignmentsAndPackages.Id,
+                SharedStatus.Receiving);
+        }
+    }
+    
+    public async Task<ReceivingReturnRequest> ParseShipmentInfoAndReturnToReceivingReturnRequest(
+        List<ShipmentInfo> shipmentInfos, Return returnObj)
+    {
+        try
+        {
+            await _returnValidator.ValidateAndThrowAsync(returnObj);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(ex, $"Validierungsfehler für Return: {ex.Message}");
+            throw;
+        }
+
+        for (int i = 0; i < shipmentInfos.Count; i++)
+        {
+            try
+            {
+                await _shipmentInfoValidator.ValidateAndThrowAsync(shipmentInfos[i]);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogError(ex, $"Validierungsfehler für ShipmentInfo an Position {i}: {ex.Message}");
+                throw;
+            }
+        }
+
+        var receivingReturnRequest = CreateReceivingReturnRequest(shipmentInfos, returnObj);
+
+        try
+        {
+            await _receivingReturnRequestValidator.ValidateAndThrowAsync(receivingReturnRequest);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogError(ex, $"Validierungsfehler für ReceivingReturnRequest: {ex.Message}");
+            throw;
+        }
+
+        return receivingReturnRequest;
+    }
+    
+    private ReceivingReturnRequest CreateReceivingReturnRequest(
+        List<ShipmentInfo> shipmentInfos, Return returnObj)
+    {
+        var receivingReturnRequest = new ReceivingReturnRequest()
+        {
+            aldiReturnCode = returnObj.AldiReturnCode,
+            customerInfo = new ReceivingReturnCustomerInfoRequest()
+            {
+                address = returnObj.CustomerInfo.Address != null
+                    ? new ReceivingReturnAddressRequest()
+                    {
+                        countryIsoCode = returnObj.CustomerInfo.Address.CountryIsoCode,
+                        firstName = returnObj.CustomerInfo.Address.FirstName,
+                        lastName = returnObj.CustomerInfo.Address.LastName,
+                        streetName = returnObj.CustomerInfo.Address.StreetName,
+                        streetNumber = returnObj.CustomerInfo.Address.StreetNumber,
+                        postalCode = returnObj.CustomerInfo.Address.PostalCode,
+                        town = returnObj.CustomerInfo.Address.Town,
+                        type = returnObj.CustomerInfo.Address.Type
+                    }
+                    : new ReceivingReturnAddressRequest(),
+                emailAddress = returnObj.CustomerInfo.EmailAddress,
+                phoneNumber = returnObj.CustomerInfo.PhoneNumber ?? string.Empty
+            },
+            entries = new List<ReceivingReturnEntriesRequest>(),
+            initiationDate = returnObj.InitiationDate.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture),
+            orderCode = returnObj.OrderCode
+        };
+
+        foreach (var shipmentInfo in shipmentInfos)
+        {
+            var orderEntry =
+                returnObj.Order?.Entries?.FirstOrDefault(e => e.VendorProductCode == shipmentInfo.ProductCode);
+            var returnEntry = returnObj.ReturnEntries?.FirstOrDefault(e => e.Id == shipmentInfo.ReturnEntryId);
+
+            if (orderEntry == null || returnEntry == null) continue;
+
+            var entryRequest = new ReceivingReturnEntriesRequest()
+            {
+                consignments = new List<ReceivingReturnConsignmentsRequest>(),
+                entryCode = returnEntry.EntryCode ?? string.Empty,
+                notes = returnEntry.Notes ?? string.Empty,
+                orderEntryNumber = orderEntry.EntryNumber,
+                quantity = returnEntry.Quantity,
+                reason = returnEntry.Reason ?? string.Empty
+            };
+
+            var consignmentRequest = new ReceivingReturnConsignmentsRequest()
+            {
+                carrier = shipmentInfo.Carrier,
+                packages = new List<ReceivingReturnPackagesRequest>(),
+                quantity = shipmentInfo.Quantity
+            };
+
+            var packageRequest = new ReceivingReturnPackagesRequest()
+            {
+                status = SharedStatus.Receiving,
+                trackingId = shipmentInfo.TrackingNumber,
+                trackingLink = CreateTrackingLink(shipmentInfo.TrackingNumber, shipmentInfo.Carrier),
+                vendorPackageCode = shipmentInfo.TrackingNumber,
+            };
+
+            consignmentRequest.packages.Add(packageRequest);
+            entryRequest.consignments.Add(consignmentRequest);
+            receivingReturnRequest.entries.Add(entryRequest);
+        }
+
+        return receivingReturnRequest;
+    }
+    
+    private string CreateTrackingLink(string trackingId, string carrier)
+    {
+        var baseUrl = carrier.Equals("DHL") ? _trackingLinkBaseUrls.DHL :
+            carrier.Equals("DPD") ? _trackingLinkBaseUrls.DPD : string.Empty;
+        return $"{baseUrl}{trackingId}";
     }
 }
