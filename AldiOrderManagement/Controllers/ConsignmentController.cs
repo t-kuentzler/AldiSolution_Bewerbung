@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
