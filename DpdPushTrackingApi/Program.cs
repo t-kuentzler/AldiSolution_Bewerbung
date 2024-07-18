@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
 using Shared;
 using Shared.Logger;
-using System.Net;
 using System.Threading.RateLimiting;
 using DpdPushTrackingApi.Models;
 using Serilog;
@@ -32,32 +34,20 @@ public class Program
         // Register shared services
         builder.Services.AddSharedServices(builder.Configuration);
 
-        // Load allowed IP addresses
-        var allowedIpAddresses = builder.Configuration.GetSection("AllowedIPAddresses").Get<List<string>>() ?? new List<string>();
-        var parsedIpAddresses = allowedIpAddresses.Select(IPAddress.Parse).ToList();
-
-        // Load rate limiting options with default values
-        var rateLimitingOptions = builder.Configuration.GetSection("RateLimiting").Get<RateLimitingOptions>() ?? new RateLimitingOptions
+        // Define rate limiting options directly in the code
+        var rateLimitingOptions = new RateLimitingOptions
         {
-            TokenLimit = 4,
-            TokensPerPeriod = 4,
+            TokenLimit = 1,
+            TokensPerPeriod = 1,
             ReplenishmentPeriodInSeconds = 1
         };
 
         // Add rate limiting services
         builder.Services.AddRateLimiter(options =>
         {
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(httpContext =>
-            {
-                var clientIp = httpContext.Connection.RemoteIpAddress;
-                if (clientIp == null || !parsedIpAddresses.Contains(clientIp))
-                {
-                    // If the IP address is not allowed, no limiter will be applied
-                    return RateLimitPartition.GetNoLimiter(clientIp ?? IPAddress.None);
-                }
-
-                return RateLimitPartition.GetTokenBucketLimiter(
-                    partitionKey: clientIp,
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+                RateLimitPartition.GetTokenBucketLimiter(
+                    partitionKey: "global",
                     factory: _ => new TokenBucketRateLimiterOptions
                     {
                         TokenLimit = rateLimitingOptions.TokenLimit,
@@ -66,8 +56,7 @@ public class Program
                         AutoReplenishment = true,
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                         QueueLimit = 0
-                    });
-            });
+                    }));
 
             options.OnRejected = (context, cancellationToken) =>
             {
@@ -100,7 +89,7 @@ public class Program
         app.UseRateLimiter();
 
         app.UseRouting();
-        
+
         app.Run();
     }
     
@@ -147,4 +136,11 @@ public class Program
 
         return sharedConfigPath;
     }
+}
+
+public class RateLimitingOptions
+{
+    public int TokenLimit { get; set; }
+    public int TokensPerPeriod { get; set; }
+    public int ReplenishmentPeriodInSeconds { get; set; }
 }
