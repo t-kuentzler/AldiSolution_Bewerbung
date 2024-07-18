@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using PdfSharp.Fonts;
 using Shared.Models;
 using Shared.Helpers;
+using System.IO;
 
 namespace AldiOrderManagement
 {
@@ -22,13 +23,12 @@ namespace AldiOrderManagement
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Host.UseSerilog();
-            
+
             // Load shared configurations
-            var sharedConfigPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            var sharedConfigPath = GetSharedAppSettingsPath();
 
             builder.Configuration
                 .AddJsonFile(sharedConfigPath, optional: false, reloadOnChange: true)
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables();
 
             // Add services to the container.
@@ -129,6 +129,25 @@ namespace AldiOrderManagement
                     Log.Error(ex, "Ein unerwarteter Fehler ist aufgetreten beim Versuch, die Datenbankverbindung zu prüfen.");
                 }
             }
+        }
+
+        private static string GetSharedAppSettingsPath()
+        {
+            var currentDirectory = Directory.GetCurrentDirectory();
+            var solutionRoot = Directory.GetParent(currentDirectory)?.FullName;
+
+            if (solutionRoot == null)
+            {
+                throw new DirectoryNotFoundException("Solution root directory not found.");
+            }
+
+            var sharedConfigPath = Path.Combine(solutionRoot, "Shared", "appsettings.json");
+            if (!File.Exists(sharedConfigPath))
+            {
+                throw new FileNotFoundException($"The configuration file '{sharedConfigPath}' was not found and is not optional.");
+            }
+
+            return sharedConfigPath;
         }
     }
 }
