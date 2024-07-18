@@ -74,7 +74,7 @@ namespace AldiOrderManagement.Controllers
             try
             {
                 IEnumerable<Order> orders;
-
+                
                 if (!string.IsNullOrWhiteSpace(searchTerm.value))
                 {
                     // Suchlogik
