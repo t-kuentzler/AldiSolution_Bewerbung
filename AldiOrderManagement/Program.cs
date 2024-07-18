@@ -21,6 +21,8 @@ namespace AldiOrderManagement
 
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Host.UseSerilog();
+            
             // Load shared configurations
             var sharedConfigPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
 
