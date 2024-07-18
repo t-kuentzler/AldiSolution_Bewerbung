@@ -23,11 +23,10 @@ public class Program
         builder.Services.AddControllers();
 
         // Load shared configurations
-        var sharedConfigPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        var sharedConfigPath = GetSharedAppSettingsPath();
 
         builder.Configuration
             .AddJsonFile(sharedConfigPath, optional: false, reloadOnChange: true)
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables();
 
         // Register shared services
@@ -128,5 +127,24 @@ public class Program
                 Log.Error(ex, "Ein unerwarteter Fehler ist aufgetreten beim Versuch, die Datenbankverbindung zu prüfen.");
             }
         }
+    }
+    
+    private static string GetSharedAppSettingsPath()
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var solutionRoot = Directory.GetParent(currentDirectory)?.FullName;
+
+        if (solutionRoot == null)
+        {
+            throw new DirectoryNotFoundException("Solution root directory not found.");
+        }
+
+        var sharedConfigPath = Path.Combine(solutionRoot, "Shared", "appsettings.json");
+        if (!File.Exists(sharedConfigPath))
+        {
+            throw new FileNotFoundException($"The configuration file '{sharedConfigPath}' was not found and is not optional.");
+        }
+
+        return sharedConfigPath;
     }
 }
