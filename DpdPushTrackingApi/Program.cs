@@ -3,16 +3,20 @@ using Shared.Logger;
 using System.Net;
 using System.Threading.RateLimiting;
 using DpdPushTrackingApi.Models;
+using Serilog;
 
 namespace DpdPushTrackingApi;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         LoggerConfigurator.ConfigureLogger();
+        Log.Information("Die Anwendung wurde gestartet.");
 
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.Host.UseSerilog();
 
         // Add services to the container.
         builder.Services.AddAuthorization();
@@ -79,6 +83,8 @@ public class Program
 
         var app = builder.Build();
 
+        await CheckDatabaseConnection(app);
+
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
@@ -97,5 +103,30 @@ public class Program
         app.UseRouting();
         
         app.Run();
+    }
+    
+    private static async Task CheckDatabaseConnection(WebApplication app)
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            try
+            {
+                var dbContext = services.GetRequiredService<ApplicationDbContext>();
+                var canConnect = await dbContext.Database.CanConnectAsync();
+                if (canConnect)
+                {
+                    Log.Information("Verbindung zur Datenbank erfolgreich.");
+                }
+                else
+                {
+                    Log.Error("Fehler bei der Verbindung zur Datenbank.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Ein unerwarteter Fehler ist aufgetreten beim Versuch, die Datenbankverbindung zu prüfen.");
+            }
+        }
     }
 }
