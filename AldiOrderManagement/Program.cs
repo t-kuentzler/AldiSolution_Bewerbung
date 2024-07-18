@@ -1,15 +1,11 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Shared;
 using Shared.Logger;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
 using System.Runtime.InteropServices;
 using PdfSharp.Fonts;
 using Shared.Models;
 using Shared.Helpers;
-using System.IO;
 
 namespace AldiOrderManagement
 {
@@ -75,7 +71,7 @@ namespace AldiOrderManagement
             // Register CustomFontResolver
             builder.Services.AddSingleton<CustomFontResolver>();
             builder.Services.AddSingleton<IFontResolver>(provider => provider.GetRequiredService<CustomFontResolver>());
-            
+
             var app = builder.Build();
 
             // Check database connection
@@ -133,15 +129,10 @@ namespace AldiOrderManagement
 
         private static string GetSharedAppSettingsPath()
         {
-            var currentDirectory = Directory.GetCurrentDirectory();
-            var solutionRoot = Directory.GetParent(currentDirectory)?.FullName;
+            //appsettings.json liegt direkt im Veröffentlichungsverzeichnis
+            var baseDirectory = AppContext.BaseDirectory;
+            var sharedConfigPath = Path.Combine(baseDirectory, "appsettings.json");
 
-            if (solutionRoot == null)
-            {
-                throw new DirectoryNotFoundException("Solution root directory not found.");
-            }
-
-            var sharedConfigPath = Path.Combine(solutionRoot, "Shared", "appsettings.json");
             if (!File.Exists(sharedConfigPath))
             {
                 throw new FileNotFoundException($"The configuration file '{sharedConfigPath}' was not found and is not optional.");
