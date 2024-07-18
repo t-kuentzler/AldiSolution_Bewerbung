@@ -72,6 +72,11 @@ namespace Shared
                 configuration.GetSection("CustomerSettings").Bind(options);
             });
 
+            services.Configure<TrackingLinkBaseUrls>(options =>
+            {
+                configuration.GetSection("TrackingLinkBaseUrls").Bind(options);
+            });
+
             // Services
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IAccessTokenService, AccessTokenService>();
