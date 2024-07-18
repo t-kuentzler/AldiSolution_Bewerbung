@@ -66,10 +66,5 @@ public class DpdTrackingDataService : IDpdTrackingDataService
                 _logger.LogWarning($"Ein Fehler trat auf beim Aktualisieren des Consignments: {ex.Message}");
             }
         }
-        else
-        {
-            _logger.LogWarning(
-                $"Das Update des Consignment-Status in der Datenbank schlug fehl für Tracking-ID '{trackingData.pnr}'. Kein Versuch, den Status der API zu melden.");
-        }
     }
 }
