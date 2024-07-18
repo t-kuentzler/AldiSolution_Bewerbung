@@ -75,7 +75,7 @@ namespace AldiOrderManagement
             // Register CustomFontResolver
             builder.Services.AddSingleton<CustomFontResolver>();
             builder.Services.AddSingleton<IFontResolver>(provider => provider.GetRequiredService<CustomFontResolver>());
-
+            
             var app = builder.Build();
 
             // Check database connection
