@@ -185,10 +185,11 @@
                     </table>
                 </div>
 
-               @if (Model.Consignments.Count > 0)
+                @if (Model.Consignments.Count > 0)
                 {
-                <h1>Lieferungen</h1>
-                } 
+                    <h1>Lieferungen</h1>
+                }
+
                 @foreach (var consignment in Model.Consignments)
                 {
                     <div class="card mb-3">
@@ -287,5 +288,15 @@
                 }
             }
         }
+        @if (Model.Status != null && Model.Status.Equals(@SharedStatus.InProgress, StringComparison.OrdinalIgnoreCase) && Model.Exported == false)
+        {
+            <button type="submit" class="btn btn-danger" onclick="return confirmCancellation();">Stornieren</button>
+        }
     </form>
 </div>
+
+<script>
+    function confirmCancellation() {
+        return confirm('Sind Sie sicher, dass Sie die ausgewählten Bestellpositionen stornieren möchten?');
+    }
+</script>
