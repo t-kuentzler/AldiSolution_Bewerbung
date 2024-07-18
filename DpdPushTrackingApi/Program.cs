@@ -39,7 +39,7 @@ public class Program
         {
             TokenLimit = 1,
             TokensPerPeriod = 1,
-            ReplenishmentPeriodInSeconds = 1
+            ReplenishmentPeriodInSeconds = 5 // Ändern für 1 Anfrage alle 5 Sekunden
         };
 
         // Add rate limiting services
@@ -92,7 +92,7 @@ public class Program
 
         app.Run();
     }
-    
+
     private static async Task CheckDatabaseConnection(WebApplication app)
     {
         using (var scope = app.Services.CreateScope())
@@ -117,18 +117,13 @@ public class Program
             }
         }
     }
-    
+
     private static string GetSharedAppSettingsPath()
     {
-        var currentDirectory = Directory.GetCurrentDirectory();
-        var solutionRoot = Directory.GetParent(currentDirectory)?.FullName;
+        //appsettings.json liegt direkt im Veröffentlichungsverzeichnis
+        var baseDirectory = AppContext.BaseDirectory;
+        var sharedConfigPath = Path.Combine(baseDirectory, "appsettings.json");
 
-        if (solutionRoot == null)
-        {
-            throw new DirectoryNotFoundException("Solution root directory not found.");
-        }
-
-        var sharedConfigPath = Path.Combine(solutionRoot, "Shared", "appsettings.json");
         if (!File.Exists(sharedConfigPath))
         {
             throw new FileNotFoundException($"The configuration file '{sharedConfigPath}' was not found and is not optional.");
