@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using PdfSharp.Fonts;
 using Microsoft.Extensions.Logging;
 using Shared.Models;
+using System.IO;
 
 namespace Shared.Helpers
 {
@@ -10,15 +11,31 @@ namespace Shared.Helpers
         private readonly string _fontsFolder;
         private readonly ILogger<CustomFontResolver> _logger;
 
-
         public CustomFontResolver(IOptions<FileSettings> fileSettings, ILogger<CustomFontResolver> logger)
         {
             if (fileSettings == null || fileSettings.Value == null)
             {
                 throw new InvalidOperationException("FileSettings cannot be null");
             }
-            _fontsFolder = Path.GetFullPath(fileSettings.Value.FontsFolder);
+
+            _fontsFolder = GetFontsFolder(fileSettings.Value.FontsFolder);
             _logger = logger;
+        }
+
+        private string GetFontsFolder(string configuredPath)
+        {
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            if (env == "Development")
+            {
+                //Fonts liegt in Shared
+                var solutionRoot = Path.Combine(Directory.GetCurrentDirectory(),"..", "Shared", "Fonts");
+                return Path.GetFullPath(solutionRoot);
+            }
+            else
+            {
+                //Fonts liegt direkt im Veröffentlichungsverzeichnis
+                return Path.Combine(AppContext.BaseDirectory, configuredPath);
+            }
         }
 
         public byte[] GetFont(string faceName)
@@ -29,12 +46,14 @@ namespace Shared.Helpers
             {
                 case "Arial":
                     fontPath = Path.Combine(_fontsFolder, "arial.ttf");
+                    _logger.LogInformation($"Pfad der Font '{faceName}': '{fontPath}'");
                     break;
                 case "Arial_bold":
                     fontPath = Path.Combine(_fontsFolder, "arialbd.ttf");
+                    _logger.LogInformation($"Pfad der Font '{faceName}': '{fontPath}'");
                     break;
                 default:
-                    _logger.LogError($"Font mit dem Namen '{faceName}' ist in der auflistung nicht vorhanden. Es wird null zurückgegeben.");
+                    _logger.LogError($"Font mit dem Namen '{faceName}' ist in der Auflistung nicht vorhanden. Es wird null zurückgegeben.");
                     return null;
             }
 
