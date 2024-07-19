@@ -6,6 +6,8 @@ public static class LoggerConfigurator
 {
     public static void ConfigureLogger()
     {
+        Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Error)
