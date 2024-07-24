@@ -14,25 +14,33 @@ ViewData["Title"] = "Sales Statistics";
         <th>Verkauft</th>
         <th>Retoure</th>
         <th>Insgesamt</th>
+        <th>Retourenquote</th>
     </tr>
     </thead>
     <tbody>
     @foreach (var item in Model)
     {
+    var returnRate = item.TotalSold > 0 ? (item.Returned / (double)item.TotalSold) * 100 : 0;
     <tr>
         <td>@item.ProductName</td>
         <td>@item.ArticleNumber</td>
         <td>@item.Sold</td>
         <td>@item.Returned</td>
         <td>@item.TotalSold</td>
+        <td>@returnRate.ToString("F1")%</td>
     </tr>
     }
 
+    @* Berechnung der Gesamt-Retourenquote *@
+    @{
+    var totalSold = Model.Sum(item => item.TotalSold);
+    var totalReturned = Model.Sum(item => item.Returned);
+    var totalReturnRate = totalSold > 0 ? (totalReturned / (double)totalSold) * 100 : 0;
+    }
+
     <tr>
-        <td colspan="2"><strong>Gesamtsummen</strong></td>
-        <td><strong>@Model.Sum(item => item.Sold)</strong></td>
-        <td><strong>@Model.Sum(item => item.Returned)</strong></td>
-        <td><strong>@Model.Sum(item => item.TotalSold)</strong></td>
+        <td colspan="5"><strong>Gesamtsummen</strong></td>
+        <td><strong>@totalReturnRate.ToString("F1")%</strong></td>
     </tr>
     </tbody>
 </table>
