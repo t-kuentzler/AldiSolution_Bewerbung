@@ -31,7 +31,6 @@ ViewData["Title"] = "Sales Statistics";
     </tr>
     }
 
-    @* Berechnung der Gesamt-Retourenquote *@
     @{
     var totalSold = Model.Sum(item => item.TotalSold);
     var totalReturned = Model.Sum(item => item.Returned);
