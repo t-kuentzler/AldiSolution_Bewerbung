@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shared.Contracts;
@@ -188,7 +188,7 @@ public class AccessTokenServiceTests
         var validToken = new AccessToken
         {
             Token = "ValidToken",
-            ExpiresAt = DateTime.UtcNow.AddHours(1) // Stellt sicher, dass der Token gültig ist
+            ExpiresAt = DateTime.Now.AddMinutes(20) // Stellt sicher, dass der Token gültig ist
         };
 
         _accessTokenRepositoryMock.Setup(repo => repo.GetFirstTokenAsync()).ReturnsAsync(validToken);
@@ -271,7 +271,7 @@ public class AccessTokenServiceTests
         var token = new AccessToken
         {
             Token = "ValidDbToken",
-            ExpiresAt = DateTime.UtcNow.AddHours(1)
+            ExpiresAt = DateTime.Now.AddMinutes(20)
         };
         
         _accessTokenRepositoryMock.Setup(repo => repo.GetFirstTokenAsync())
