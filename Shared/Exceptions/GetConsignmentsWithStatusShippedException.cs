@@ -3,7 +3,7 @@
 namespace Shared.Exceptions
 {
     [Serializable]
-    internal class GetConsignmentsWithStatusShippedException : Exception
+    public class GetConsignmentsWithStatusShippedException : Exception
     {
         public GetConsignmentsWithStatusShippedException()
         {
