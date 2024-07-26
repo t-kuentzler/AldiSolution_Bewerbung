@@ -24,6 +24,113 @@ public class ConsignmentServiceTests
             _searchTermValidatorMock.Object);
     }
     
+    //SaveConsignmentsAsync
+    [Fact]
+    public async Task SaveConsignmentAsync_Success()
+    {
+        // Arrange
+        var consignment = new Consignment { VendorConsignmentCode = "VC123" };
+        var expectedConsignmentId = 1;
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.SaveConsignmentAsync(consignment))
+            .ReturnsAsync((true, expectedConsignmentId));
+
+        // Act
+        var result = await _consignmentService.SaveConsignmentAsync(consignment);
+
+        // Assert
+        Assert.True(result.success);
+        Assert.Equal(expectedConsignmentId, result.consignmentId);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task SaveConsignmentAsync_Failure()
+    {
+        // Arrange
+        var consignment = new Consignment { VendorConsignmentCode = "VC123" };
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.SaveConsignmentAsync(consignment))
+            .ReturnsAsync((false, 0));
+
+        // Act
+        var result = await _consignmentService.SaveConsignmentAsync(consignment);
+
+        // Assert
+        Assert.False(result.success);
+        Assert.Equal(0, result.consignmentId);
+        
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SaveConsignmentAsync_ThrowsConsignmentServiceException_WhenExceptionOccurs()
+    {
+        // Arrange
+        var consignment = new Consignment { VendorConsignmentCode = "VC123" };
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.SaveConsignmentAsync(consignment))
+            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var exception = await Assert.ThrowsAsync<ConsignmentServiceException>(
+            () => _consignmentService.SaveConsignmentAsync(consignment));
+
+        // Assert
+        Assert.Equal("Fehler beim Speichern des Consignment mit dem VendorConsignmentCode 'VC123'.", exception.Message);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task SaveConsignmentAsync_LogsErrorForInvalidConsignment()
+    {
+        // Arrange
+        var consignment = new Consignment { VendorConsignmentCode = null }; // Ungültige Daten
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.SaveConsignmentAsync(consignment))
+            .ReturnsAsync((false, 0));
+
+        // Act
+        await _consignmentService.SaveConsignmentAsync(consignment);
+
+        // Assert
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+
+    
     //GetConsignmentByIdAsync
     [Fact]
     public async Task GetConsignmentByIdAsync_ReturnsConsignment_WhenConsignmentExist()
