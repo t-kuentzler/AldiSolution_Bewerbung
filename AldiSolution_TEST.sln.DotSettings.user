@@ -1,4 +1,7 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fe147b29_002Dab2b_002D4065_002Dbe88_002D0f8eac15d9e3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from AccessTokenServiceTests.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;ProjectFile&gt;932E1095-EB7D-4D74-B3D9-0A717A698504/d:Services/f:AccessTokenServiceTests.cs&lt;/ProjectFile&gt;
+  &lt;Or&gt;
+    &lt;ProjectFile&gt;932E1095-EB7D-4D74-B3D9-0A717A698504/d:Services/f:AccessTokenServiceTests.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;932E1095-EB7D-4D74-B3D9-0A717A698504/d:Services/f:CancellationServiceTests.cs&lt;/ProjectFile&gt;
+  &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

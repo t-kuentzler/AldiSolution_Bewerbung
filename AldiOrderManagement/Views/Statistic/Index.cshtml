@@ -20,7 +20,7 @@ ViewData["Title"] = "Sales Statistics";
     <tbody>
     @foreach (var item in Model)
     {
-    var returnRate = item.TotalSold > 0 ? (item.Returned / (double)item.TotalSold) * 100 : 0;
+    var returnRate = item.Sold > 0 ? (item.Returned / (double)item.Sold) * 100 : 0;
     <tr>
         <td>@item.ProductName</td>
         <td>@item.ArticleNumber</td>
