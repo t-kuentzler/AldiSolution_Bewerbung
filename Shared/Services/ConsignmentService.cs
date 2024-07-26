@@ -48,7 +48,7 @@ public class ConsignmentService : IConsignmentService
         {
             _logger.LogError(ex,
                 $"Fehler beim Speichern des Consignment mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}'.");
-            throw;
+            throw new ConsignmentServiceException($"Fehler beim Speichern des Consignment mit dem VendorConsignmentCode '{consignment.VendorConsignmentCode}'.");
         }
     }
 
@@ -64,7 +64,7 @@ public class ConsignmentService : IConsignmentService
                 $"Consignment mit der Id '{consignmentId}' wurde erfolgreich aus der Datenbank abgerufen.");
             return consignment;
         }
-        catch (Exception ex)
+        catch (ConsignmentServiceException ex)
         {
             _logger.LogError(ex, $"Fehler beim abrufen des Consignment mit der Id '{consignmentId}'.");
             throw;
@@ -93,7 +93,7 @@ public class ConsignmentService : IConsignmentService
         {
             _logger.LogError(ex,
                 $"Unerwarteter Fehler beim aktualisieren des Consignment mit der Id '{consignment.Id}' in der Datenbank.");
-            throw new Exception(
+            throw new ConsignmentServiceException(
                 $"Unerwarteter Fehler beim aktualisieren des Consignment mit der Id '{consignment.Id}' in der Datenbank.",
                 ex);
         }
