@@ -849,6 +849,134 @@ public class ConsignmentServiceTests
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
-}
+        
+        //UpdateDpdConsignmentStatusAsync
+         [Fact]
+        public async Task UpdateDpdConsignmentStatusAsync_NewStatusIsDeliveryCustomer_ReturnsTrue()
+        {
+            // Arrange
+            var newStatus = SharedStatus.delivery_customer;
+            var trackingId = "tracking123";
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.UpdateConsignmentStatusByTrackingIdAsync(SharedStatus.Delivered, trackingId))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _consignmentService.UpdateDpdConsignmentStatusAsync(newStatus, trackingId);
+
+            // Assert
+            Assert.True(result);
+            _consignmentRepositoryMock.Verify(repo => repo.UpdateConsignmentStatusByTrackingIdAsync(SharedStatus.Delivered, trackingId), Times.Once);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateDpdConsignmentStatusAsync_NewStatusIsPickupByConsignee_ReturnsTrue()
+        {
+            // Arrange
+            var newStatus = SharedStatus.pickup_by_consignee;
+            var trackingId = "tracking123";
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.UpdateConsignmentStatusByTrackingIdAsync(SharedStatus.Delivered, trackingId))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _consignmentService.UpdateDpdConsignmentStatusAsync(newStatus, trackingId);
+
+            // Assert
+            Assert.True(result);
+            _consignmentRepositoryMock.Verify(repo => repo.UpdateConsignmentStatusByTrackingIdAsync(SharedStatus.Delivered, trackingId), Times.Once);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateDpdConsignmentStatusAsync_NewStatusIsNotValid_ReturnsFalse()
+        {
+            // Arrange
+            var newStatus = "invalid_status";
+            var trackingId = "tracking123";
+
+            // Act
+            var result = await _consignmentService.UpdateDpdConsignmentStatusAsync(newStatus, trackingId);
+
+            // Assert
+            Assert.False(result);
+            _consignmentRepositoryMock.Verify(repo => repo.UpdateConsignmentStatusByTrackingIdAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateDpdConsignmentStatusAsync_RepositoryException_ReturnsFalse()
+        {
+            // Arrange
+            var newStatus = SharedStatus.delivery_customer;
+            var trackingId = "tracking123";
+            var repositoryException = new RepositoryException("Repository error");
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.UpdateConsignmentStatusByTrackingIdAsync(SharedStatus.Delivered, trackingId))
+                .ThrowsAsync(repositoryException);
+
+            // Act
+            var result = await _consignmentService.UpdateDpdConsignmentStatusAsync(newStatus, trackingId);
+
+            // Assert
+            Assert.False(result);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    repositoryException,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateDpdConsignmentStatusAsync_UnexpectedException_ReturnsFalse()
+        {
+            // Arrange
+            var newStatus = SharedStatus.delivery_customer;
+            var trackingId = "tracking123";
+            var unexpectedException = new Exception("Unexpected error");
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.UpdateConsignmentStatusByTrackingIdAsync(SharedStatus.Delivered, trackingId))
+                .ThrowsAsync(unexpectedException);
+
+            // Act
+            var result = await _consignmentService.UpdateDpdConsignmentStatusAsync(newStatus, trackingId);
+
+            // Assert
+            Assert.False(result);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    unexpectedException,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+    }
+
     
     
