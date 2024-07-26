@@ -64,10 +64,16 @@ public class ConsignmentService : IConsignmentService
                 $"Consignment mit der Id '{consignmentId}' wurde erfolgreich aus der Datenbank abgerufen.");
             return consignment;
         }
-        catch (ConsignmentServiceException ex)
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception beim abrufen des Consignment mit der Id '{consignmentId}'.");
+            throw;
+        }
+        catch (Exception ex)
         {
             _logger.LogError(ex, $"Fehler beim abrufen des Consignment mit der Id '{consignmentId}'.");
-            throw;
+            throw new ConsignmentServiceException($"Fehler beim abrufen des Consignment mit der Id '{consignmentId}'.");
         }
     }
 
