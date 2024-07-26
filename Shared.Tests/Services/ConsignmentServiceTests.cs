@@ -705,4 +705,73 @@ public class ConsignmentServiceTests
                 Times.Once);
             
         }
+        
+        //GetConsignmentByConsignmentIdAsync
+        [Fact]
+        public async Task GetConsignmentByConsignmentIdAsync_ReturnsConsignment()
+        {
+            // Arrange
+            var consignmentId = 1;
+            var expectedConsignment = new Consignment { Id = consignmentId };
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.GetConsignmentByConsignmentIdAsync(consignmentId))
+                .ReturnsAsync(expectedConsignment);
+
+            // Act
+            var result = await _consignmentService.GetConsignmentByConsignmentIdAsync(consignmentId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(expectedConsignment, result);
+        }
+
+        [Fact]
+        public async Task GetConsignmentByConsignmentIdAsync_RepositoryException_Throws()
+        {
+            // Arrange
+            var consignmentId = 1;
+            var repositoryException = new RepositoryException("Repository error");
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.GetConsignmentByConsignmentIdAsync(consignmentId))
+                .ThrowsAsync(repositoryException);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<RepositoryException>(() => _consignmentService.GetConsignmentByConsignmentIdAsync(consignmentId));
+
+            Assert.Equal(repositoryException, exception);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    repositoryException,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetConsignmentByConsignmentIdAsync_UnexpectedException_ThrowsConsignmentServiceException()
+        {
+            // Arrange
+            var consignmentId = 1;
+            var unexpectedException = new Exception("Unexpected error");
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.GetConsignmentByConsignmentIdAsync(consignmentId))
+                .ThrowsAsync(unexpectedException);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ConsignmentServiceException>(() => _consignmentService.GetConsignmentByConsignmentIdAsync(consignmentId));
+
+            Assert.Equal($"Es ist ein unerwarteter Fehler beim abrufen des Consignment mit der Consignment Id '{consignmentId}' aufgetreten.", exception.Message);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    unexpectedException,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
     }
+    
