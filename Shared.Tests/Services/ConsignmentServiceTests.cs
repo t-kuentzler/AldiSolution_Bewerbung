@@ -291,6 +291,133 @@ public class ConsignmentServiceTests
             Times.Once);
     }
 
+    //ParseConsignmentToConsignmentRequest
+    [Fact]
+    public void ParseConsignmentToConsignmentRequest_Success()
+    {
+        // Arrange
+        var consignment = new Consignment
+        {
+            Order = new Order
+            {
+                Entries = new List<OrderEntry>
+                {
+                    new OrderEntry
+                    {
+                        DeliveryAddress = new DeliveryAddress
+                        {
+                            Type = "Type1",
+                            CountryIsoCode = "DE"
+                        }
+                    }
+                }
+            },
+            ConsignmentEntries = new List<ConsignmentEntry>
+            {
+                new ConsignmentEntry
+                {
+                    OrderEntryNumber = 2,
+                    Quantity = 10
+                }
+            },
+            Carrier = "Carrier1",
+            ShippingDate = DateTime.Now,
+            Status = "Status1",
+            StatusText = "Status Text",
+            TrackingId = "Tracking1",
+            VendorConsignmentCode = "Vendor1"
+        };
+
+        // Act
+        var result = _consignmentService.ParseConsignmentToConsignmentRequest(consignment);
+
+        // Assert
+        Assert.Single(result);
+        var consignmentRequest = result.First();
+        Assert.Equal("Carrier1", consignmentRequest.carrier);
+        Assert.Equal("Type1", consignmentRequest.shippingAddress.type);
+        Assert.Equal("DE", consignmentRequest.shippingAddress.countryIsoCode);
+        Assert.Equal(2, consignmentRequest.entries.First().orderEntryNumber);
+        Assert.Equal(10, consignmentRequest.entries.First().quantity);
+        Assert.Equal(consignment.ShippingDate.ToString("yyyy-MM-dd"), consignmentRequest.shippingDate);
+        Assert.Equal("Status1", consignmentRequest.status);
+        Assert.Equal("Status Text", consignmentRequest.statusText);
+        Assert.Equal("Tracking1", consignmentRequest.trackingId);
+        Assert.Equal("Vendor1", consignmentRequest.vendorConsignmentCode);
+    }
+
+    [Fact]
+    public void ParseConsignmentToConsignmentRequest_ThrowsArgumentNullException_WhenTypeIsNull()
+    {
+        // Arrange
+        var consignment = new Consignment
+        {
+            Order = new Order
+            {
+                Entries = new List<OrderEntry>
+                {
+                    new OrderEntry
+                    {
+                        DeliveryAddress = new DeliveryAddress
+                        {
+                            Type = null,
+                            CountryIsoCode = "DE"
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var exception = Assert.Throws<ArgumentNullException>(() => _consignmentService.ParseConsignmentToConsignmentRequest(consignment));
+
+        // Assert
+        Assert.Equal("firstEntryType", exception.ParamName);
+        _loggerMock.Verify(logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString().Contains("Type ist null beim konvertieren der Consignment")),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void ParseConsignmentToConsignmentRequest_ThrowsArgumentNullException_WhenCountryIsoCodeIsNull()
+    {
+        // Arrange
+        var consignment = new Consignment
+        {
+            Order = new Order
+            {
+                Entries = new List<OrderEntry>
+                {
+                    new OrderEntry
+                    {
+                        DeliveryAddress = new DeliveryAddress
+                        {
+                            Type = "Type1",
+                            CountryIsoCode = null
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var exception = Assert.Throws<ArgumentNullException>(() => _consignmentService.ParseConsignmentToConsignmentRequest(consignment));
+
+        // Assert
+        Assert.Equal("firstEntryCountryIsoCode", exception.ParamName);
+        _loggerMock.Verify(logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString().Contains("CountryIsoCode ist null beim konvertieren der Consignment")),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
 
 
 }
