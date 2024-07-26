@@ -773,5 +773,82 @@ public class ConsignmentServiceTests
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
-    }
+        
+        //GetShippedConsignmentByTrackingIdAsync
+        [Fact]
+        public async Task GetShippedConsignmentByTrackingIdAsync_ReturnsConsignment()
+        {
+            // Arrange
+            var trackingId = "tracking123";
+            var expectedConsignment = new Consignment { TrackingId = trackingId };
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.GetShippedConsignmentByTrackingIdAsync(trackingId))
+                .ReturnsAsync(expectedConsignment);
+
+            // Act
+            var result = await _consignmentService.GetShippedConsignmentByTrackingIdAsync(trackingId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(expectedConsignment, result);
+        }
+
+        [Fact]
+        public async Task GetShippedConsignmentByTrackingIdAsync_RepositoryException_ReturnsEmptyConsignment()
+        {
+            // Arrange
+            var trackingId = "tracking123";
+            var repositoryException = new RepositoryException("Repository error");
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.GetShippedConsignmentByTrackingIdAsync(trackingId))
+                .ThrowsAsync(repositoryException);
+
+            // Act
+            var result = await _consignmentService.GetShippedConsignmentByTrackingIdAsync(trackingId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.IsType<Consignment>(result);
+            Assert.Empty(result.ConsignmentEntries);
+            Assert.Equal(0, result.Id);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    repositoryException,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetShippedConsignmentByTrackingIdAsync_UnexpectedException_ReturnsEmptyConsignment()
+        {
+            // Arrange
+            var trackingId = "tracking123";
+            var unexpectedException = new Exception("Unexpected error");
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.GetShippedConsignmentByTrackingIdAsync(trackingId))
+                .ThrowsAsync(unexpectedException);
+
+            // Act
+            var result = await _consignmentService.GetShippedConsignmentByTrackingIdAsync(trackingId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.IsType<Consignment>(result);
+            Assert.Empty(result.ConsignmentEntries);
+            Assert.Equal(0, result.Id);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    unexpectedException,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+}
+    
     
