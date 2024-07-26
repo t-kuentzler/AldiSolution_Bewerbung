@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shared.Constants;
@@ -1050,6 +1051,137 @@ public class ConsignmentServiceTests
             _consignmentService.UpdateConsignmentStatusAsync(newStatus, consignment));
 
         // Assert
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    //SearchConsignmentsAsync
+    [Fact]
+    public async Task SearchConsignmentsAsync_ReturnsEmptyList_WhenSearchTermIsNullOrWhiteSpace()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = " "
+        };
+        string status = "AnyStatus";
+
+        // Act
+        var result = await _consignmentService.SearchConsignmentsAsync(searchTerm, status);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task SearchConsignmentsAsync_ThrowsArgumentException_WhenStatusIsNull()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = "valid"
+        };
+        string status = null;
+
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _consignmentService.SearchConsignmentsAsync(searchTerm, status));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchConsignmentsAsync_ThrowsValidationException_WhenSearchTermIsInvalid()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = "1111111111111111111111111111111" //Mehr als 30 Zeichen
+        };
+        var status = "anyStatus";
+
+        _searchTermValidatorMock
+            .Setup(validator => validator.ValidateAndThrowAsync(searchTerm))
+            .ThrowsAsync(new ValidationException("Validation failed"));
+
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _consignmentService.SearchConsignmentsAsync(searchTerm, status));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchConsignmentsAsync_ThrowsRepositoryException_WhenRepositoryThrowsRepositoryException()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = "Test"
+        };
+        string status = "anyStatus";
+
+        _consignmentRepositoryMock.Setup(repo => repo.SearchShippedConsignmentsAsync(searchTerm))
+            .ThrowsAsync(new RepositoryException("Test exception"));
+
+        //Act
+        await Assert.ThrowsAsync<RepositoryException>(() =>
+            _consignmentService.SearchConsignmentsAsync(searchTerm, status));
+
+        // Assert
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchConsignmentsAsync_ThrowsConsignmentServiceException_WhenUnexpectedExceptionOccurs()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = "Test"
+        };
+        string status = "anyStatus";
+
+        _consignmentRepositoryMock.Setup(repo => repo.SearchShippedConsignmentsAsync(searchTerm))
+            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var exception = await Assert.ThrowsAsync<ConsignmentServiceException>(() =>
+            _consignmentService.SearchConsignmentsAsync(searchTerm, status));
+
+        // Assert
+        Assert.IsType<Exception?>(exception.InnerException);
+        Assert.Equal("Unexpected error", exception.InnerException?.Message);
         _loggerMock.Verify(
             logger => logger.Log(
                 LogLevel.Error,
