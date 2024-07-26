@@ -1191,4 +1191,122 @@ public class ConsignmentServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
+    
+    //GetAllConsignmentsByStatusAsync
+    [Fact]
+    public async Task GetAllConsignmentsByStatusAsync_ReturnsConsignments_WhenStatusIsValid()
+    {
+        // Arrange
+        var status = "DELIVERED";
+        var consignments = new List<Consignment>
+        {
+            new Consignment()
+            {
+                Id = 1,
+                ConsignmentEntries = new List<ConsignmentEntry>()
+                {
+                }
+            },
+            new Consignment()
+            {
+                Id = 2,
+                ConsignmentEntries = new List<ConsignmentEntry>()
+                {
+                }
+            },
+        };
+
+        _consignmentRepositoryMock.Setup(repo => repo.GetConsignmentsWithStatusAsync(status))
+            .ReturnsAsync(consignments);
+
+        // Act
+        var result = await _consignmentService.GetAllConsignmentsByStatusAsync(status);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count); // Erwarten Sie die gleiche Anzahl von Orders, die Sie im Setup festgelegt haben
+        _consignmentRepositoryMock.Verify(repo => repo.GetConsignmentsWithStatusAsync(status), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task GetAllConsignmentsByStatusAsync_ThrowsArgumentNullException_WhenStatusIsNullOrEmpty(string status)
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _consignmentService.GetAllConsignmentsByStatusAsync(status));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllConsignmentsByStatusAsync_ThrowsAndLogsRepositoryException_WhenRepositoryExceptionOccurs()
+    {
+        // Arrange
+        var status = "SHIPPED";
+
+        _consignmentRepositoryMock.Setup(repo => repo.GetConsignmentsWithStatusAsync(status))
+            .ThrowsAsync(new RepositoryException("Test exception"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() =>
+            _consignmentService.GetAllConsignmentsByStatusAsync(status));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+
+    [Fact]
+    public async Task GetAllConsignmentsByStatusAsync_ThrowsConsignmentServiceException_WhenUnexpectedExceptionOccurs()
+    {
+        // Arrange
+        var status = "PROCESSING";
+
+        _consignmentRepositoryMock.Setup(repo => repo.GetConsignmentsWithStatusAsync(status))
+            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ConsignmentServiceException>(() =>
+            _consignmentService.GetAllConsignmentsByStatusAsync(status));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+
+    [Fact]
+    public async Task GetAllConsignmentsByStatusAsync_ReturnsEmptyList_WhenNoConsignmentsFound()
+    {
+        // Arrange
+        var status = "CANCELLED";
+        _consignmentRepositoryMock.Setup(repo => repo.GetConsignmentsWithStatusAsync(status))
+            .ReturnsAsync(new List<Consignment>());
+
+        // Act
+        var result = await _consignmentService.GetAllConsignmentsByStatusAsync(status);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
 }
