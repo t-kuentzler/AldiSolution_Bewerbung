@@ -213,4 +213,84 @@ public class ConsignmentServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
+    
+    //UpdateConsignmentAsync
+    [Fact]
+    public async Task UpdateConsignmentAsync_Success()
+    {
+        // Arrange
+        var consignment = new Consignment { Id = 1 };
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.UpdateConsignmentAsync(consignment))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _consignmentService.UpdateConsignmentAsync(consignment);
+
+        // Assert
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Exactly(2));
+    }
+    
+    [Fact]
+    public async Task UpdateConsignmentAsync_ThrowsRepositoryException_WhenRepositoryExceptionOccurs()
+    {
+        // Arrange
+        var consignment = new Consignment { Id = 1 };
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.UpdateConsignmentAsync(consignment))
+            .ThrowsAsync(new RepositoryException("Repository error"));
+
+        // Act
+        var exception = await Assert.ThrowsAsync<RepositoryException>(
+            () => _consignmentService.UpdateConsignmentAsync(consignment));
+
+        // Assert
+        Assert.Equal("Repository error", exception.Message);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task UpdateConsignmentAsync_ThrowsConsignmentServiceException_WhenUnexpectedExceptionOccurs()
+    {
+        // Arrange
+        var consignment = new Consignment { Id = 1 };
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.UpdateConsignmentAsync(consignment))
+            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var exception = await Assert.ThrowsAsync<ConsignmentServiceException>(
+            () => _consignmentService.UpdateConsignmentAsync(consignment));
+
+        // Assert
+        Assert.Equal("Unerwarteter Fehler beim aktualisieren des Consignment mit der Id '1' in der Datenbank.", exception.Message);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+
+
 }
