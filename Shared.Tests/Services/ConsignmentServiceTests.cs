@@ -1582,4 +1582,68 @@ public class ConsignmentServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.AtLeastOnce);
     }
+    
+    //ProcessConsignmentStatusesAsync
+    [Fact]
+    public async Task ProcessConsignmentStatusesAsync_ThrowsOrderIsNullException_WhenOrderIsNull()
+    {
+        // Arrange
+        Order order = null;
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderIsNullException>(() =>
+            _consignmentService.ProcessConsignmentStatusesAsync(order));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessConsignmentStatusesAsync_ThrowsConsignmentIsNullException_WhenConsignmentsAreNull()
+    {
+        // Arrange
+        Order order = new Order() { Consignments = null };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ConsignmentIsNullException>(() =>
+            _consignmentService.ProcessConsignmentStatusesAsync(order));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task
+        ProcessConsignmentStatusesAsync_DoesNotCallReturnWholeConsignment_WhenNotAllConsignmentsAreReturned()
+    {
+        // Arrange
+        var order = new Order
+        {
+            Consignments = new List<Consignment>
+            {
+                new Consignment
+                {
+                    ConsignmentEntries = new List<ConsignmentEntry> { new ConsignmentEntry { Quantity = 1 } }
+                }
+            }
+        };
+
+        // Act
+        await _consignmentService.ProcessConsignmentStatusesAsync(order);
+
+        // Assert
+        _consignmentRepositoryMock.Verify(x => x.UpdateConsignmentAsync(It.IsAny<Consignment>()), Times.Never);
+    }
 }
