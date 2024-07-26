@@ -1060,7 +1060,7 @@ public class ConsignmentServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
-    
+
     //SearchConsignmentsAsync
     [Fact]
     public async Task SearchConsignmentsAsync_ReturnsEmptyList_WhenSearchTermIsNullOrWhiteSpace()
@@ -1191,7 +1191,7 @@ public class ConsignmentServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
-    
+
     //GetAllConsignmentsByStatusAsync
     [Fact]
     public async Task GetAllConsignmentsByStatusAsync_ReturnsConsignments_WhenStatusIsValid()
@@ -1309,170 +1309,277 @@ public class ConsignmentServiceTests
         Assert.NotNull(result);
         Assert.Empty(result);
     }
-    
+
     //AreAllConsignmentsCancelled
     [Fact]
-        public void AreAllConsignmentsCancelled_OrderIsNull_ThrowsOrderIsNullException()
-        {
-            // Arrange
-            Order? order = null;
+    public void AreAllConsignmentsCancelled_OrderIsNull_ThrowsOrderIsNullException()
+    {
+        // Arrange
+        Order? order = null;
 
-            // Act & Assert
-            Assert.Throws<OrderIsNullException>(() => _consignmentService.AreAllConsignmentsCancelled(order));
-            
-            _loggerMock.Verify(
-                logger => logger.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-                Times.Once);
-            
-        }
+        // Act & Assert
+        Assert.Throws<OrderIsNullException>(() => _consignmentService.AreAllConsignmentsCancelled(order));
 
-        [Fact]
-        public void AreAllConsignmentsCancelled_AllConsignmentsCancelled_ReturnsTrue()
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void AreAllConsignmentsCancelled_AllConsignmentsCancelled_ReturnsTrue()
+    {
+        // Arrange
+        var order = new Order
         {
-            // Arrange
-            var order = new Order
+            Consignments = new List<Consignment>
             {
-                Consignments = new List<Consignment>
-                {
-                    new Consignment { Status = SharedStatus.Cancelled },
-                    new Consignment { Status = SharedStatus.Cancelled }
-                }
-            };
+                new Consignment { Status = SharedStatus.Cancelled },
+                new Consignment { Status = SharedStatus.Cancelled }
+            }
+        };
 
-            // Act
-            var result = _consignmentService.AreAllConsignmentsCancelled(order);
+        // Act
+        var result = _consignmentService.AreAllConsignmentsCancelled(order);
 
-            // Assert
-            Assert.True(result);
-        }
+        // Assert
+        Assert.True(result);
+    }
 
-        [Fact]
-        public void AreAllConsignmentsCancelled_NotAllConsignmentsCancelled_ReturnsFalse()
+    [Fact]
+    public void AreAllConsignmentsCancelled_NotAllConsignmentsCancelled_ReturnsFalse()
+    {
+        // Arrange
+        var order = new Order
         {
-            // Arrange
-            var order = new Order
+            Consignments = new List<Consignment>
             {
-                Consignments = new List<Consignment>
-                {
-                    new Consignment { Status = SharedStatus.Cancelled },
-                    new Consignment { Status = SharedStatus.Delivered }
-                }
-            };
+                new Consignment { Status = SharedStatus.Cancelled },
+                new Consignment { Status = SharedStatus.Delivered }
+            }
+        };
 
-            // Act
-            var result = _consignmentService.AreAllConsignmentsCancelled(order);
+        // Act
+        var result = _consignmentService.AreAllConsignmentsCancelled(order);
 
-            // Assert
-            Assert.False(result);
-        }
+        // Assert
+        Assert.False(result);
+    }
 
-        [Fact]
-        public void AreAllConsignmentsCancelled_EmptyConsignmentsList_ReturnsFalse()
+    [Fact]
+    public void AreAllConsignmentsCancelled_EmptyConsignmentsList_ReturnsFalse()
+    {
+        // Arrange
+        var order = new Order
         {
-            // Arrange
-            var order = new Order
+            Consignments = new List<Consignment>()
             {
-                Consignments = new List<Consignment>(){new Consignment()
+                new Consignment()
                 {
                     Status = SharedStatus.Shipped
-                }}
-            };
+                }
+            }
+        };
 
-            // Act
-            var result = _consignmentService.AreAllConsignmentsCancelled(order);
+        // Act
+        var result = _consignmentService.AreAllConsignmentsCancelled(order);
 
-            // Assert
-            Assert.False(result);
-        }
-        
-        //GetConsignmentEntryByIdAsync
-         [Fact]
-        public async Task GetConsignmentEntryByIdAsync_InvalidId_ThrowsInvalidIdException()
-        {
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidIdException>(() => _consignmentService.GetConsignmentEntryByIdAsync(0));
-            _loggerMock.Verify(
-                logger => logger.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-                Times.Once);        
-        }
-
-        [Fact]
-        public async Task GetConsignmentEntryByIdAsync_RepositoryException_ThrowsRepositoryException()
-        {
-            // Arrange
-            var consignmentEntryId = 1;
-            var repositoryException = new RepositoryException("Repository error");
-
-            _consignmentRepositoryMock
-                .Setup(repo => repo.GetConsignmentEntryByIdAsync(consignmentEntryId))
-                .ThrowsAsync(repositoryException);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<RepositoryException>(() => _consignmentService.GetConsignmentEntryByIdAsync(consignmentEntryId));
-            Assert.Equal(repositoryException, exception);
-            _loggerMock.Verify(
-                logger => logger.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-                Times.Once);        }
-
-        [Fact]
-        public async Task GetConsignmentEntryByIdAsync_UnexpectedException_ThrowsConsignmentServiceException()
-        {
-            // Arrange
-            var consignmentEntryId = 1;
-            var unexpectedException = new Exception("Unexpected error");
-
-            _consignmentRepositoryMock
-                .Setup(repo => repo.GetConsignmentEntryByIdAsync(consignmentEntryId))
-                .ThrowsAsync(unexpectedException);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<ConsignmentServiceException>(() => _consignmentService.GetConsignmentEntryByIdAsync(consignmentEntryId));
-            Assert.Equal($"Unerwarteter Fehler beim Abrufen von ConsignmentEntry mit dem Status '{consignmentEntryId}'.", exception.Message);
-            _loggerMock.Verify(
-                logger => logger.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-                Times.Once);        }
-
-        [Fact]
-        public async Task GetConsignmentEntryByIdAsync_ValidId_ReturnsConsignmentEntry()
-        {
-            // Arrange
-            var consignmentEntryId = 1;
-            var expectedConsignmentEntry = new ConsignmentEntry { Id = consignmentEntryId };
-
-            _consignmentRepositoryMock
-                .Setup(repo => repo.GetConsignmentEntryByIdAsync(consignmentEntryId))
-                .ReturnsAsync(expectedConsignmentEntry);
-
-            // Act
-            var result = await _consignmentService.GetConsignmentEntryByIdAsync(consignmentEntryId);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal(expectedConsignmentEntry, result);
-        }
+        // Assert
+        Assert.False(result);
     }
-    
 
+    //GetConsignmentEntryByIdAsync
+    [Fact]
+    public async Task GetConsignmentEntryByIdAsync_InvalidId_ThrowsInvalidIdException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidIdException>(() => _consignmentService.GetConsignmentEntryByIdAsync(0));
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
 
+    [Fact]
+    public async Task GetConsignmentEntryByIdAsync_RepositoryException_ThrowsRepositoryException()
+    {
+        // Arrange
+        var consignmentEntryId = 1;
+        var repositoryException = new RepositoryException("Repository error");
 
+        _consignmentRepositoryMock
+            .Setup(repo => repo.GetConsignmentEntryByIdAsync(consignmentEntryId))
+            .ThrowsAsync(repositoryException);
 
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<RepositoryException>(() =>
+            _consignmentService.GetConsignmentEntryByIdAsync(consignmentEntryId));
+        Assert.Equal(repositoryException, exception);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetConsignmentEntryByIdAsync_UnexpectedException_ThrowsConsignmentServiceException()
+    {
+        // Arrange
+        var consignmentEntryId = 1;
+        var unexpectedException = new Exception("Unexpected error");
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.GetConsignmentEntryByIdAsync(consignmentEntryId))
+            .ThrowsAsync(unexpectedException);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ConsignmentServiceException>(() =>
+            _consignmentService.GetConsignmentEntryByIdAsync(consignmentEntryId));
+        Assert.Equal($"Unerwarteter Fehler beim Abrufen von ConsignmentEntry mit dem Status '{consignmentEntryId}'.",
+            exception.Message);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetConsignmentEntryByIdAsync_ValidId_ReturnsConsignmentEntry()
+    {
+        // Arrange
+        var consignmentEntryId = 1;
+        var expectedConsignmentEntry = new ConsignmentEntry { Id = consignmentEntryId };
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.GetConsignmentEntryByIdAsync(consignmentEntryId))
+            .ReturnsAsync(expectedConsignmentEntry);
+
+        // Act
+        var result = await _consignmentService.GetConsignmentEntryByIdAsync(consignmentEntryId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(expectedConsignmentEntry, result);
+    }
+
+    //UpdateConsignmentEntryQuantityAsync
+    [Fact]
+    public async Task
+        UpdateConsignmentEntryQuantityAsync_ThrowsConsignmentEntryIsNullException_WhenConsignmentEntryIsNull()
+    {
+        // Arrange
+        ConsignmentEntry consignmentEntry = null;
+        var returnEntryModel = new ReturnEntryModel { ReturnQuantity = 1 };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ConsignmentEntryIsNullException>(() =>
+            _consignmentService.UpdateConsignmentEntryQuantityAsync(consignmentEntry, returnEntryModel));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateConsignmentEntryQuantityAsync_ThrowsReturnEntryIsNullException_WhenReturnEntryModelIsNull()
+    {
+        // Arrange
+        var consignmentEntry = new ConsignmentEntry { Quantity = 10 };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ReturnEntryIsNullException>(() =>
+            _consignmentService.UpdateConsignmentEntryQuantityAsync(consignmentEntry, null));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(10, 5, 5)]
+    [InlineData(10, 10, 10)]
+    public async Task UpdateConsignmentEntryQuantityAsync_CorrectCancelledOrReturnedQuantity(int initialQuantity,
+        int returnQuantity, int expectedQuantity)
+    {
+        // Arrange
+        var consignmentEntry = new ConsignmentEntry { Quantity = initialQuantity, CancelledOrReturnedQuantity = 0 };
+        var returnEntryModel = new ReturnEntryModel { ReturnQuantity = returnQuantity };
+
+        // Act
+        await _consignmentService.UpdateConsignmentEntryQuantityAsync(consignmentEntry, returnEntryModel);
+
+        // Assert
+        Assert.Equal(expectedQuantity, consignmentEntry.CancelledOrReturnedQuantity);
+        _consignmentRepositoryMock.Verify(x => x.UpdateConsignmentEntryAsync(consignmentEntry), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateConsignmentEntryQuantityAsync_HandlesRepositoryException()
+    {
+        // Arrange
+        var consignmentEntry = new ConsignmentEntry { Quantity = 10 };
+        var returnEntryModel = new ReturnEntryModel { ReturnQuantity = 5 };
+        _consignmentRepositoryMock.Setup(x => x.UpdateConsignmentEntryAsync(It.IsAny<ConsignmentEntry>()))
+            .ThrowsAsync(new RepositoryException("Database update failed"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() =>
+            _consignmentService.UpdateConsignmentEntryQuantityAsync(consignmentEntry, returnEntryModel));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateConsignmentEntryQuantityAsync_LogsInformationOnSuccess()
+    {
+        // Arrange
+        var consignmentEntry = new ConsignmentEntry { Quantity = 10, CancelledOrReturnedQuantity = 0 };
+        var returnEntryModel = new ReturnEntryModel { ReturnQuantity = 5 };
+
+        // Act
+        await _consignmentService.UpdateConsignmentEntryQuantityAsync(consignmentEntry, returnEntryModel);
+
+        // Assert
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.AtLeastOnce);
+    }
+}
