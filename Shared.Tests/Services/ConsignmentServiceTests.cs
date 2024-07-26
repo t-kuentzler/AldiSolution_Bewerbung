@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using Shared.Constants;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Exceptions;
@@ -604,4 +605,104 @@ public class ConsignmentServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
-}
+    
+    //UpdateConsignmentStatusByConsignmentIdAsync
+    [Fact]
+    public async Task UpdateConsignmentStatusByConsignmentIdAsync_NewStatusIsDelivered_ReturnsTrue()
+    {
+        // Arrange
+        var newStatus = SharedStatus.delivered;
+        var consignmentId = 1;
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.UpdateConsignmentStatusByIdAsync(consignmentId, SharedStatus.Delivered))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _consignmentService.UpdateConsignmentStatusByConsignmentIdAsync(newStatus, consignmentId);
+
+        // Assert
+        Assert.True(result);
+        _consignmentRepositoryMock.Verify(repo => repo.UpdateConsignmentStatusByIdAsync(consignmentId, SharedStatus.Delivered), Times.Once);
+        _loggerMock.Verify(logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+        [Fact]
+        public async Task UpdateConsignmentStatusByConsignmentIdAsync_NewStatusIsNotDelivered_ReturnsFalse()
+        {
+            // Arrange
+            var newStatus = "NotDelivered";
+            var consignmentId = 1;
+
+            // Act
+            var result = await _consignmentService.UpdateConsignmentStatusByConsignmentIdAsync(newStatus, consignmentId);
+
+            // Assert
+            Assert.False(result);
+            _consignmentRepositoryMock.Verify(repo => repo.UpdateConsignmentStatusByIdAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateConsignmentStatusByConsignmentIdAsync_RepositoryException_ReturnsFalse()
+        {
+            // Arrange
+            var repositoryException = new RepositoryException("Repository error");
+            var newStatus = SharedStatus.delivered;
+            var consignmentId = 1;
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.UpdateConsignmentStatusByIdAsync(consignmentId, SharedStatus.Delivered))
+                .ThrowsAsync(repositoryException);
+
+            // Act
+            var result = await _consignmentService.UpdateConsignmentStatusByConsignmentIdAsync(newStatus, consignmentId);
+            // Assert
+            Assert.False(result);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.Is<RepositoryException>(ex => ex == repositoryException),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateConsignmentStatusByConsignmentIdAsync_UnexpectedException_ReturnsFalse()
+        {
+            // Arrange
+            var repositoryException = new Exception("unexpected error");
+            var newStatus = SharedStatus.delivered;
+            var consignmentId = 1;
+
+            _consignmentRepositoryMock
+                .Setup(repo => repo.UpdateConsignmentStatusByIdAsync(consignmentId, SharedStatus.Delivered))
+                .ThrowsAsync(repositoryException);
+
+            // Act
+            var result = await _consignmentService.UpdateConsignmentStatusByConsignmentIdAsync(newStatus, consignmentId);
+            // Assert
+            Assert.False(result);
+            _loggerMock.Verify(logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.Is<Exception>(ex => ex == repositoryException),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+            
+        }
+    }
