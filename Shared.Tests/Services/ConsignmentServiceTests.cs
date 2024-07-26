@@ -527,6 +527,75 @@ public class ConsignmentServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<ConsignmentServiceException>(() =>
             _consignmentService.UpdateConsignmentEntryQuantitiesAsync(order, returnEntry));
+
+        _loggerMock.Verify(logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    //GetConsignmentsWithStatusShippedAsync
+    [Fact]
+    public async Task GetConsignmentsWithStatusShippedAsync_ReturnsConsignments()
+    {
+        // Arrange
+        var expectedConsignments = new List<Consignment>
+        {
+            new Consignment { Id = 1, Status = "Shipped" },
+            new Consignment { Id = 2, Status = "Shipped" }
+        };
+
+        _consignmentRepositoryMock
+            .Setup(repo => repo.GetConsignmentsWithStatusShippedAsync())
+            .ReturnsAsync(expectedConsignments);
+
+        // Act
+        var result = await _consignmentService.GetConsignmentsWithStatusShippedAsync();
+
+        // Assert
+        Assert.Equal(expectedConsignments, result);
+    }
+
+    [Fact]
+    public async Task GetConsignmentsWithStatusShippedAsync_RepositoryException_ReturnsEmptyList()
+    {
+        // Arrange
+        var repositoryException = new RepositoryException("Repository error");
+        _consignmentRepositoryMock
+            .Setup(repo => repo.GetConsignmentsWithStatusShippedAsync())
+            .ThrowsAsync(repositoryException);
+
+        // Act
+        var result = await _consignmentService.GetConsignmentsWithStatusShippedAsync();
+
+        // Assert
+        Assert.Empty(result);
+        _loggerMock.Verify(logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.Is<RepositoryException>(ex => ex == repositoryException),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+
+    [Fact]
+    public async Task GetConsignmentsWithStatusShippedAsync_GetConsignmentsWithStatusShippedException_ReturnsEmptyList()
+    {
+        // Arrange
+        _consignmentRepositoryMock
+            .Setup(repo => repo.GetConsignmentsWithStatusShippedAsync())
+            .ThrowsAsync(new GetConsignmentsWithStatusShippedException("Unexpected error"));
+
+        // Act
+        var result = await _consignmentService.GetConsignmentsWithStatusShippedAsync();
+
+        // Assert
+        Assert.Empty(result);
         _loggerMock.Verify(logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
