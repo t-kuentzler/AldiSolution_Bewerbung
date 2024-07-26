@@ -105,15 +105,15 @@ public class ConsignmentService : IConsignmentService
         if (string.IsNullOrEmpty(firstEntryType))
         {
             _logger.LogError("Type ist null beim konvertieren der Consignment zu einem ConsignmentRequest.");
-            throw new Exception("Type ist null beim konvertieren der Consignment zu einem ConsignmentRequest.");
+            throw new ArgumentNullException(nameof(firstEntryType));
         }
 
         var firstEntryCountryIsoCode = consignment.Order.Entries.FirstOrDefault()?.DeliveryAddress?.CountryIsoCode;
         if (string.IsNullOrEmpty(firstEntryCountryIsoCode))
         {
             _logger.LogError("CountryIsoCode ist null beim konvertieren der Consignment zu einem ConsignmentRequest.");
-            throw new Exception(
-                "CountryIsoCode ist null beim konvertieren der Consignment zu einem ConsignmentRequest.");
+            throw new ArgumentNullException(nameof(firstEntryCountryIsoCode));
+
         }
 
         var consignmentRequestList = new List<ConsignmentRequest>
@@ -214,7 +214,7 @@ public class ConsignmentService : IConsignmentService
         {
             _logger.LogError(ex,
                 $"Unerwarteter Fehler beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{entry.Id}' in der Datenbank.");
-            throw new Exception(
+            throw new ConsignmentServiceException(
                 $"Unerwarteter Fehler beim aktualisieren der Quantity des ConsignmentEntry mit der Id '{entry.Id}' in der Datenbank.",
                 ex);
         }
@@ -295,7 +295,7 @@ public class ConsignmentService : IConsignmentService
         {
             _logger.LogError(ex,
                 $"Es ist ein unerwarteter Fehler beim abrufen des Consignment mit der Consignment Id '{consignmentId}' aufgetreten.");
-            throw;
+            throw new ConsignmentServiceException($"Es ist ein unerwarteter Fehler beim abrufen des Consignment mit der Consignment Id '{consignmentId}' aufgetreten.");
         }
     }
     
