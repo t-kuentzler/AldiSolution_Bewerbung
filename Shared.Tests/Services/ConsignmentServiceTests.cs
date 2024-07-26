@@ -1309,4 +1309,88 @@ public class ConsignmentServiceTests
         Assert.NotNull(result);
         Assert.Empty(result);
     }
-}
+    
+    //AreAllConsignmentsCancelled
+    [Fact]
+        public void AreAllConsignmentsCancelled_OrderIsNull_ThrowsOrderIsNullException()
+        {
+            // Arrange
+            Order? order = null;
+
+            // Act & Assert
+            Assert.Throws<OrderIsNullException>(() => _consignmentService.AreAllConsignmentsCancelled(order));
+            
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                Times.Once);
+            
+        }
+
+        [Fact]
+        public void AreAllConsignmentsCancelled_AllConsignmentsCancelled_ReturnsTrue()
+        {
+            // Arrange
+            var order = new Order
+            {
+                Consignments = new List<Consignment>
+                {
+                    new Consignment { Status = SharedStatus.Cancelled },
+                    new Consignment { Status = SharedStatus.Cancelled }
+                }
+            };
+
+            // Act
+            var result = _consignmentService.AreAllConsignmentsCancelled(order);
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void AreAllConsignmentsCancelled_NotAllConsignmentsCancelled_ReturnsFalse()
+        {
+            // Arrange
+            var order = new Order
+            {
+                Consignments = new List<Consignment>
+                {
+                    new Consignment { Status = SharedStatus.Cancelled },
+                    new Consignment { Status = SharedStatus.Delivered }
+                }
+            };
+
+            // Act
+            var result = _consignmentService.AreAllConsignmentsCancelled(order);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void AreAllConsignmentsCancelled_EmptyConsignmentsList_ReturnsFalse()
+        {
+            // Arrange
+            var order = new Order
+            {
+                Consignments = new List<Consignment>(){new Consignment()
+                {
+                    Status = SharedStatus.Shipped
+                }}
+            };
+
+            // Act
+            var result = _consignmentService.AreAllConsignmentsCancelled(order);
+
+            // Assert
+            Assert.False(result);
+        }
+    }
+
+
+
+
