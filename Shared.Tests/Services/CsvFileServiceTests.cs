@@ -5,6 +5,8 @@ using Moq;
 using Shared.Services;
 using System.Runtime.InteropServices;
 using Shared.Contracts;
+using Shared.Entities;
+using Shared.Models;
 
 namespace Shared.Tests.Services
 {
@@ -13,6 +15,7 @@ namespace Shared.Tests.Services
         private readonly Mock<ILogger<CsvFileService>> _loggerMock;
         private readonly Mock<IOrderService> _orderServiceMock;
         private readonly CsvFileService _csvFileService;
+        private readonly IConfiguration _configurationMock;
 
         public CsvFileServiceTests()
         {
@@ -20,13 +23,14 @@ namespace Shared.Tests.Services
             _orderServiceMock = new Mock<IOrderService>();
             var configurationData = new List<KeyValuePair<string, string?>>
             {
-                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", string.Empty),
-                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", string.Empty)
+                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", "ValidPath"),
+                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", "ValidPath"),
+                new KeyValuePair<string, string?>("CustomerSettings:CustomerNumber", "123")
             };
-            var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
 
+            _configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
 
-            _csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
+            _csvFileService = new CsvFileService(_configurationMock, _loggerMock.Object, _orderServiceMock.Object);
         }
         
         [Fact]
@@ -227,6 +231,177 @@ namespace Shared.Tests.Services
             // Cleanup
             File.Delete(filePath);
             Directory.Delete(folderPath);
+        }
+        
+        //ParseConsignmentsFromCsvToConsignments
+        [Fact]
+        public async Task ParseConsignmentsFromCsvToConsignments_ReturnsEmptyList_WhenNoCustomerNumberMatch()
+        {
+            // Arrange
+            var csvConsignments = new List<ConsignmentFromCsv>
+            {
+                new ConsignmentFromCsv { kdnr = "999", nve_nr = "tracking1", artikelnummer = "ART123", menge = "10" }
+            };
+
+            // Act
+            var result = await _csvFileService.ParseConsignmentsFromCsvToConsignments(csvConsignments);
+
+            // Assert
+            Assert.Empty(result);
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task ParseConsignmentsFromCsvToConsignments_GroupsByTrackingNumber()
+        {
+            // Arrange
+            var csvConsignments = new List<ConsignmentFromCsv>
+            {
+                new ConsignmentFromCsv { kdnr = "123", paket = "DPD", farbe_id = "123", nve_nr = "tracking1", artikelnummer = "ART", menge = "10", kontrakt_nr_kunde = "ORDER1", datum_druck = "01.01.2001"},
+                new ConsignmentFromCsv { kdnr = "123", paket = "DPD", farbe_id = "124", nve_nr = "tracking1", artikelnummer = "ART", menge = "5", kontrakt_nr_kunde = "ORDER1", datum_druck = "01.01.2001" }
+            };
+
+            var order = new Order
+            {
+                Entries = new List<OrderEntry>
+                {
+                    new OrderEntry { VendorProductCode = "ART123", Id = 1, EntryNumber = 1 },
+                    new OrderEntry { VendorProductCode = "ART124", Id = 2, EntryNumber = 2 }
+                }
+            };
+
+            _orderServiceMock.Setup(service => service.GetOrderByOrderCodeAsync("ORDER1")).ReturnsAsync(order);
+
+            // Act
+            var result = await _csvFileService.ParseConsignmentsFromCsvToConsignments(csvConsignments);
+
+            // Assert
+            Assert.Single(result);
+            Assert.Equal("tracking1", result[0].TrackingId);
+            Assert.Equal(2, result[0].ConsignmentEntries.Count);
+        }
+
+        [Fact]
+        public async Task ParseConsignmentsFromCsvToConsignments_SkipsEntriesWithoutMatchingOrderEntry()
+        {
+            // Arrange
+            var csvConsignments = new List<ConsignmentFromCsv>
+            {
+                new ConsignmentFromCsv { kdnr = "123", paket = "DPD", farbe_id = "123", nve_nr = "tracking1", artikelnummer = "ART", menge = "10", kontrakt_nr_kunde = "ORDER1", datum_druck = "01.01.2001"},
+                new ConsignmentFromCsv { kdnr = "123", paket = "DPD", farbe_id = "124", nve_nr = "tracking1", artikelnummer = "ART", menge = "5", kontrakt_nr_kunde = "ORDER1", datum_druck = "01.01.2001" }
+            };
+
+            var order = new Order
+            {
+                Entries = new List<OrderEntry>
+                {
+                    new OrderEntry { VendorProductCode = "ART123", Id = 1, EntryNumber = 1 }
+                }
+            };
+
+            _orderServiceMock.Setup(service => service.GetOrderByOrderCodeAsync("ORDER1")).ReturnsAsync(order);
+
+            // Act
+            var result = await _csvFileService.ParseConsignmentsFromCsvToConsignments(csvConsignments);
+
+            // Assert
+            Assert.Single(result[0].ConsignmentEntries);
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task ParseConsignmentsFromCsvToConsignments_SetsTrackingLinkForCarrier()
+        {
+            // Arrange
+            var csvConsignments = new List<ConsignmentFromCsv>
+            {
+                new ConsignmentFromCsv { kdnr = "123", paket = "DPD", farbe_id = "123", nve_nr = "tracking1", artikelnummer = "ART", menge = "10", kontrakt_nr_kunde = "ORDER1", datum_druck = "01.01.2001"}
+            };
+
+            var order = new Order
+            {
+                Entries = new List<OrderEntry>
+                {
+                    new OrderEntry { VendorProductCode = "ART123", Id = 1, EntryNumber = 1 }
+                }
+            };
+
+            _orderServiceMock.Setup(service => service.GetOrderByOrderCodeAsync("ORDER1")).ReturnsAsync(order);
+
+            // Act
+            var result = await _csvFileService.ParseConsignmentsFromCsvToConsignments(csvConsignments);
+
+            // Assert
+            Assert.Single(result);
+            Assert.Equal("https://tracking.dpd.de/parcelstatus?query=tracking1", result[0].TrackingLink);
+        }
+
+        [Fact]
+        public async Task ParseConsignmentsFromCsvToConsignments_SetsShippingAddress()
+        {
+            // Arrange
+            var csvConsignments = new List<ConsignmentFromCsv>
+            {
+                new ConsignmentFromCsv { kdnr = "123", paket = "DPD", farbe_id = "123", nve_nr = "tracking1", artikelnummer = "ART", menge = "10", kontrakt_nr_kunde = "ORDER1", datum_druck = "01.01.2001"}
+            };
+
+            var order = new Order
+            {
+                Entries = new List<OrderEntry>
+                {
+                    new OrderEntry
+                    {
+                        VendorProductCode = "ART123",
+                        Id = 1,
+                        EntryNumber = 1,
+                        DeliveryAddress = new DeliveryAddress
+                        {
+                            Type = "Type",
+                            SalutationCode = "Herr",
+                            FirstName = "John",
+                            LastName = "Doe",
+                            StreetName = "Musterstrasse",
+                            StreetNumber = "1",
+                            PostalCode = "12345",
+                            Town = "Musterstadt",
+                            CountryIsoCode = "DE"
+                        }
+                    }
+                }
+            };
+
+            _orderServiceMock.Setup(service => service.GetOrderByOrderCodeAsync("ORDER1")).ReturnsAsync(order);
+
+            // Act
+            var result = await _csvFileService.ParseConsignmentsFromCsvToConsignments(csvConsignments);
+
+            // Assert
+            Assert.Single(result);
+            var shippingAddress = result[0].ShippingAddress;
+            Assert.NotNull(shippingAddress);
+            Assert.Equal("Type", shippingAddress.Type);
+            Assert.Equal("Herr", shippingAddress.SalutationCode);
+            Assert.Equal("John", shippingAddress.FirstName);
+            Assert.Equal("Doe", shippingAddress.LastName);
+            Assert.Equal("Musterstrasse", shippingAddress.StreetName);
+            Assert.Equal("1", shippingAddress.StreetNumber);
+            Assert.Equal("12345", shippingAddress.PostalCode);
+            Assert.Equal("Musterstadt", shippingAddress.Town);
+            Assert.Equal("DE", shippingAddress.CountryIsoCode);
         }
     }
 }

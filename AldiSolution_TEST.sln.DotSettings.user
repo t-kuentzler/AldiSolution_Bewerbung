@@ -6,6 +6,13 @@
     &lt;TestAncestor&gt;
       &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.ConsignmentProcessingServiceTests&lt;/TestId&gt;
       &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.ConsignmentServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ThrowsDirectoryNotFoundException_WhenFolderPathIsInvalid&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ThrowsDirectoryNotFoundException_WhenFolderPathDoesNotExist&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ParsesCsvFilesSuccessfully&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ThrowsCsvHelperException_OnCsvParsingError&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ThrowsHeaderValidationException_OnCsvHeaderValidationError&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ThrowsTypeConverterException_OnCsvDataConversionError&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests&lt;/TestId&gt;
     &lt;/TestAncestor&gt;
   &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
