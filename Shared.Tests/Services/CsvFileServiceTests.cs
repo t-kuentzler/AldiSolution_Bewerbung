@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using CsvHelper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,8 @@ namespace Shared.Tests.Services
         private readonly Mock<IOrderService> _orderServiceMock;
         private readonly CsvFileService _csvFileService;
         private readonly IConfiguration _configurationMock;
+        private readonly MockFileSystem _fileSystem;
+
 
         public CsvFileServiceTests()
         {
@@ -29,12 +32,13 @@ namespace Shared.Tests.Services
             };
 
             _configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
+            _fileSystem = new MockFileSystem();
 
-            _csvFileService = new CsvFileService(_configurationMock, _loggerMock.Object, _orderServiceMock.Object);
+            _csvFileService = new CsvFileService(_configurationMock, _loggerMock.Object, _orderServiceMock.Object, _fileSystem);
         }
         
         [Fact]
-        public void GetConsignmentsFromCsvFiles_ThrowsNotSupportedException_WhenFolderPathIsInvalid()
+        public void GetConsignmentsFromCsvFiles_ThrowsNotSupportedException_WhenOSIsNotSupported()
         {
             // Arrange
             var configurationData = new List<KeyValuePair<string, string?>>
@@ -43,37 +47,31 @@ namespace Shared.Tests.Services
                 new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", string.Empty)
             };
             var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
+            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object, _fileSystem);
 
-            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
-
-            // Act & Assert
-            Assert.Throws<NotSupportedException>(() => csvFileService.GetConsignmentsFromCsvFiles());
-            _loggerMock.Verify(
-                logger => logger.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-                Times.Once);
+            // Mock OS Platform
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // Act & Assert
+                Assert.Throws<NotSupportedException>(() => csvFileService.GetConsignmentsFromCsvFiles());
+                _loggerMock.Verify(
+                    logger => logger.Log(
+                        LogLevel.Error,
+                        It.IsAny<EventId>(),
+                        It.IsAny<It.IsAnyType>(),
+                        It.IsAny<Exception>(),
+                        (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                    Times.Once);
+            }
         }
 
         [Fact]
         public void GetConsignmentsFromCsvFiles_ThrowsDirectoryNotFoundException_WhenFolderPathIsInvalid()
         {
             // Arrange
-            var configurationData = new List<KeyValuePair<string, string?>>
-            {
-                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", string.Empty),
-                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", string.Empty)
-            };
-            var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
-
-
-            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
-
+            _fileSystem.AddDirectory(@"C:\CsvFiles");
             // Act & Assert
-            Assert.Throws<NotSupportedException>(() => csvFileService.GetConsignmentsFromCsvFiles());
+            Assert.Throws<DirectoryNotFoundException>(() => _csvFileService.GetConsignmentsFromCsvFiles());
             _loggerMock.Verify(
                 logger => logger.Log(
                     LogLevel.Error,
@@ -81,7 +79,7 @@ namespace Shared.Tests.Services
                     It.IsAny<It.IsAnyType>(),
                     It.IsAny<Exception>(),
                     (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-                Times.Once);
+                Times.Exactly(2));
         }
 
         [Fact]
@@ -89,28 +87,19 @@ namespace Shared.Tests.Services
         {
             // Arrange
             string folderPath = "InvalidPath";
-            var configurationData = new List<KeyValuePair<string, string?>>
-            {
-                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", string.Empty),
-                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", string.Empty)
-            };
-            var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
-
-
-            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
-
+         
             // Mock OS Platform
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                configurationMock["CsvConsignmentPath:Windows"] = folderPath;
+                _configurationMock["CsvConsignmentPath:Windows"] = folderPath;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                configurationMock["CsvConsignmentPath:MacOS"] = folderPath;
+                _configurationMock["CsvConsignmentPath:MacOS"] = folderPath;
             }
 
             // Act & Assert
-            Assert.Throws<DirectoryNotFoundException>(() => csvFileService.GetConsignmentsFromCsvFiles());
+            Assert.Throws<DirectoryNotFoundException>(() => _csvFileService.GetConsignmentsFromCsvFiles());
             _loggerMock.Verify(
                 logger => logger.Log(
                     LogLevel.Error,
@@ -127,25 +116,15 @@ namespace Shared.Tests.Services
             // Arrange
             string folderPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(folderPath);
-
-            var configurationData = new List<KeyValuePair<string, string?>>
-            {
-                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", string.Empty),
-                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", string.Empty)
-            };
-            var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
-
-
-            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
-
+            
             // Mock OS Platform
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                configurationMock["CsvConsignmentPath:Windows"] = folderPath;
+                _configurationMock["CsvConsignmentPath:Windows"] = folderPath;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                configurationMock["CsvConsignmentPath:MacOS"] = folderPath;
+                _configurationMock["CsvConsignmentPath:MacOS"] = folderPath;
             }
 
             // Create mock CSV content
@@ -156,7 +135,7 @@ namespace Shared.Tests.Services
             File.WriteAllText(filePath, csvContent);
 
             // Act
-            var result = csvFileService.GetConsignmentsFromCsvFiles();
+            var result = _csvFileService.GetConsignmentsFromCsvFiles();
 
             // Assert
             Assert.Single(result);
@@ -190,25 +169,15 @@ namespace Shared.Tests.Services
             // Arrange
             string folderPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(folderPath);
-
-            var configurationData = new List<KeyValuePair<string, string?>>
-            {
-                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", string.Empty),
-                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", string.Empty)
-            };
-            var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
-
-
-            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
-
+            
             // Mock OS Platform
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                configurationMock["CsvConsignmentPath:Windows"] = folderPath;
+                _configurationMock["CsvConsignmentPath:Windows"] = folderPath;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                configurationMock["CsvConsignmentPath:MacOS"] = folderPath;
+                _configurationMock["CsvConsignmentPath:MacOS"] = folderPath;
             }
 
             // Create mock invalid CSV content with missing headers
@@ -219,7 +188,7 @@ namespace Shared.Tests.Services
             File.WriteAllText(filePath, csvContent);
 
             // Act & Assert
-            Assert.Throws<HeaderValidationException>(() => csvFileService.GetConsignmentsFromCsvFiles());
+            Assert.Throws<HeaderValidationException>(() => _csvFileService.GetConsignmentsFromCsvFiles());
             _loggerMock.Verify(
                 logger => logger.Log(
                     LogLevel.Error,
@@ -403,5 +372,106 @@ namespace Shared.Tests.Services
             Assert.Equal("Musterstadt", shippingAddress.Town);
             Assert.Equal("DE", shippingAddress.CountryIsoCode);
         }
+        
+        //MoveCsvFilesToArchiv
+        [Fact]
+        public void MoveCsvFilesToArchiv_MovesFilesSuccessfully()
+        {
+            // Arrange
+            string sourceFolderPath = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles");
+            string archiveFolderPath = _fileSystem.Path.Combine(sourceFolderPath, "Archiv");
+        
+            var configurationData = new List<KeyValuePair<string, string?>>
+            {
+                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles")),
+                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles"))
+            };
+            var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
+            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object, _fileSystem);
+            
+            _fileSystem.AddDirectory(sourceFolderPath);
+            _fileSystem.AddFile(_fileSystem.Path.Combine(sourceFolderPath, "file1.csv"), new MockFileData("content1"));
+            _fileSystem.AddFile(_fileSystem.Path.Combine(sourceFolderPath, "file2.csv"), new MockFileData("content2"));
+        
+            // Act
+            csvFileService.MoveCsvFilesToArchiv();
+        
+            // Assert
+            Assert.False(_fileSystem.File.Exists(_fileSystem.Path.Combine(sourceFolderPath, "file1.csv")));
+            Assert.False(_fileSystem.File.Exists(_fileSystem.Path.Combine(sourceFolderPath, "file2.csv")));
+            Assert.True(_fileSystem.File.Exists(_fileSystem.Path.Combine(archiveFolderPath, "file1.csv")));
+            Assert.True(_fileSystem.File.Exists(_fileSystem.Path.Combine(archiveFolderPath, "file2.csv")));
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                Times.Exactly(2));
+        }
+        
+        
+         [Fact]
+         public void MoveCsvFilesToArchiv_CreatesArchiveFolderIfNotExists()
+         {
+             // Arrange
+             string sourceFolderPath = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles");
+             string archiveFolderPath = _fileSystem.Path.Combine(sourceFolderPath, "Archiv");
+        
+             _fileSystem.AddDirectory(sourceFolderPath);
+             _fileSystem.AddFile(_fileSystem.Path.Combine(sourceFolderPath, "file1.csv"), new MockFileData("content1"));
+        
+             var configurationData = new List<KeyValuePair<string, string?>>
+             {
+                 new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles")),
+                 new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles"))
+             };
+             var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
+             var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object, _fileSystem);
+
+             
+             // Act
+             csvFileService.MoveCsvFilesToArchiv();
+        
+             // Assert
+             Assert.True(_fileSystem.Directory.Exists(archiveFolderPath));
+             Assert.False(_fileSystem.File.Exists(_fileSystem.Path.Combine(sourceFolderPath, "file1.csv")));
+             Assert.True(_fileSystem.File.Exists(_fileSystem.Path.Combine(archiveFolderPath, "file1.csv")));
+         }
+        
+         [Fact]
+         public void MoveCsvFilesToArchiv_LogsErrorOnException()
+         {
+             // Arrange
+             string sourceFolderPath = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles");
+             _fileSystem.AddDirectory(sourceFolderPath);
+             _fileSystem.AddFile(_fileSystem.Path.Combine(sourceFolderPath, "file1.csv"), new MockFileData("content1"));
+        
+             // ReadOnly damit Fehler erzeugt wird
+             var filePath = _fileSystem.Path.Combine(sourceFolderPath, "file1.csv");
+             _fileSystem.File.SetAttributes(filePath, System.IO.FileAttributes.ReadOnly);
+        
+             var configurationData = new List<KeyValuePair<string, string?>>
+             {
+                 new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles")),
+                 new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "CsvFiles"))
+             };
+             var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
+             var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object, _fileSystem);
+
+             // Act
+             csvFileService.MoveCsvFilesToArchiv();
+        
+             // Assert
+             _loggerMock.Verify(
+                 logger => logger.Log(
+                     LogLevel.Error,
+                     It.IsAny<EventId>(),
+                     It.IsAny<It.IsAnyType>(),
+                     It.IsAny<Exception>(),
+                     (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                 Times.Once);
+         }
     }
 }
