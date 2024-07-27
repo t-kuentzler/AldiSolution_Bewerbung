@@ -62,9 +62,9 @@ public class CsvFileService : ICsvFileService
             _logger.LogError(ex.Message);
             throw;
         }
-        catch (CsvHelperException ex)
+        catch (HeaderValidationException ex)
         {
-            _logger.LogError($"Fehler beim Parsen der CSV-Datei: {ex.Message}");
+            _logger.LogError($"Fehler beim Validieren des CSV-Headers: {ex.Message}");
             throw;
         }
         catch (Exception ex)
@@ -75,6 +75,7 @@ public class CsvFileService : ICsvFileService
 
         return csvConsignments;
     }
+
 
     private string GetFolderPath()
     {
