@@ -28,6 +28,31 @@ namespace Shared.Tests.Services
 
             _csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
         }
+        
+        [Fact]
+        public void GetConsignmentsFromCsvFiles_ThrowsNotSupportedException_WhenFolderPathIsInvalid()
+        {
+            // Arrange
+            var configurationData = new List<KeyValuePair<string, string?>>
+            {
+                new KeyValuePair<string, string?>("CsvConsignmentPath:Windows", string.Empty),
+                new KeyValuePair<string, string?>("CsvConsignmentPath:MacOS", string.Empty)
+            };
+            var configurationMock = new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
+
+            var csvFileService = new CsvFileService(configurationMock, _loggerMock.Object, _orderServiceMock.Object);
+
+            // Act & Assert
+            Assert.Throws<NotSupportedException>(() => csvFileService.GetConsignmentsFromCsvFiles());
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                Times.Once);
+        }
 
         [Fact]
         public void GetConsignmentsFromCsvFiles_ThrowsDirectoryNotFoundException_WhenFolderPathIsInvalid()
