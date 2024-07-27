@@ -1,9 +1,7 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts;
 
-namespace Shared
+namespace Shared.Services
 {
     public class OrderProcessingService : IOrderProcessingService
     {
