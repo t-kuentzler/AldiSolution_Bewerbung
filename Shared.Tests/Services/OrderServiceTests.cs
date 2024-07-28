@@ -374,4 +374,115 @@ public class OrderServiceTests
             It.IsAny<Exception>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
+    
+    //UpdateSingleOrderStatusInDatabaseAsync
+    [Fact]
+    public async Task UpdateSingleOrderStatusInDatabaseAsync_ValidOrderCodeAndStatus_ReturnsTrue()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var status = "Shipped";
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusAsync(orderCode, status)).ReturnsAsync(true);
+
+        // Act
+        var result = await _orderService.UpdateSingleOrderStatusInDatabaseAsync(orderCode, status);
+
+        // Assert
+        Assert.True(result);
+        _updateStatusValidatorMock.Verify(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>()), Times.Once);
+        _orderRepositoryMock.Verify(r => r.UpdateOrderStatusAsync(orderCode, status), Times.Once);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Bestellung mit Code {orderCode} wurde erfolgreich in der Datenbank auf {status} aktualisiert.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSingleOrderStatusInDatabaseAsync_OrderCodeIsNullOrEmpty_ReturnsFalse()
+    {
+        // Arrange
+        var orderCode = string.Empty;
+        var status = "Shipped";
+
+        // Act
+        var result = await _orderService.UpdateSingleOrderStatusInDatabaseAsync(orderCode, status);
+
+        // Assert
+        Assert.False(result);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("OrderCode darf beim aktualisieren des Order Status nicht leer sein.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSingleOrderStatusInDatabaseAsync_StatusValidationFails_ReturnsFalse()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var status = "Shipped";
+        var validationResult = new ValidationResult(new[] { new ValidationFailure("Status", "Validation failed") });
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).ThrowsAsync(new ValidationException(validationResult.Errors));
+
+        // Act
+        var result = await _orderService.UpdateSingleOrderStatusInDatabaseAsync(orderCode, status);
+
+        // Assert
+        Assert.False(result);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Bei der Aktualisierung des Status {status} mit dem Code {orderCode} ist ein Fehler aufgetreten: Validation failed")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSingleOrderStatusInDatabaseAsync_UpdateOrderStatusAsyncFails_ReturnsFalse()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var status = "Shipped";
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusAsync(orderCode, status)).ReturnsAsync(false);
+
+        // Act
+        var result = await _orderService.UpdateSingleOrderStatusInDatabaseAsync(orderCode, status);
+
+        // Assert
+        Assert.False(result);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Fehler beim Aktualisieren des Status in der Datenbank für Bestellung mit Code {orderCode}.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSingleOrderStatusInDatabaseAsync_UnexpectedException_ReturnsFalse()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var status = "Shipped";
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusAsync(orderCode, status)).ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var result = await _orderService.UpdateSingleOrderStatusInDatabaseAsync(orderCode, status);
+
+        // Assert
+        Assert.False(result);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim aktualisieren des Status der Order mit dem OrderCode '{orderCode}'.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
 }
