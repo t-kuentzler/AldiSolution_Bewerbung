@@ -810,4 +810,111 @@ public class OrderServiceTests
         Assert.NotNull(result);
         Assert.Empty(result);
     }
+    
+    //GetOrderByIdAsync
+    [Fact]
+    public async Task GetOrderByIdAsync_ReturnsOrder_WhenOrderExist()
+    {
+        //Arrange
+        int orderId = 1;
+    
+        var order = new Order()
+        {
+            Id = 1
+        };
+    
+        _orderRepositoryMock.Setup(repo => repo.GetOrderByIdAsync(orderId))
+            .ReturnsAsync(order);
+        // Act
+        var result = await _orderService.GetOrderByIdAsync(orderId);
+    
+        // Assert
+        Assert.NotNull(result);
+    }
+    
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(-100)]
+    public async Task GetOrderByIdAsync_ThrowsArgumentException_WhenOrderIdIsNegative(int orderId)
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _orderService.GetOrderByIdAsync(orderId));
+    
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    } 
+  
+    [Fact]
+    public async Task GetOrderByIdAsync_ThrowsRepositoryException_WhenRepositoryThrowsRepositoryException()
+    {
+        // Arrange
+        int orderId = 1;
+    
+        _orderRepositoryMock.Setup(repo => repo.GetOrderByIdAsync(orderId))
+            .ThrowsAsync(new RepositoryException("Test exception"));
+    
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() => _orderService.GetOrderByIdAsync(orderId));
+    
+        // Assert
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task GetOrderByIdAsync_ThrowsOrderServiceException_WhenUnexpectedExceptionOccurs()
+    {
+        // Arrange
+        int orderId = 1;
+    
+        _orderRepositoryMock.Setup(repo => repo.GetOrderByIdAsync(orderId))
+            .ThrowsAsync(new Exception("Unexpected error"));
+    
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderServiceException>(() => _orderService.GetOrderByIdAsync(orderId));
+    
+        // Assert
+        
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task GetOrderByIdAsync_ThrowsOrderIsNullException_WhenOrderDoesNotExist()
+    {
+        // Arrange
+        int nonExistingOrderId = 99;
+        _orderRepositoryMock.Setup(repo => repo.GetOrderByIdAsync(nonExistingOrderId))
+            .ReturnsAsync((Order?)null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderIsNullException>(() => _orderService.GetOrderByIdAsync(nonExistingOrderId));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
 }
