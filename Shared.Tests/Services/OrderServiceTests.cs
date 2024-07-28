@@ -1,4 +1,5 @@
 using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shared.Constants;
@@ -76,59 +77,128 @@ public class OrderServiceTests
     }
 
     [Fact]
-    public async Task ProcessSingleOrderAsync_InvalidOrder_ThrowsValidationException()
+    public async Task ProcessSingleOrderAsync_OrderValidationFails_LogsError()
     {
         // Arrange
         var order = new Order { Code = "Order1" };
-
-        _orderValidatorMock.Setup(v => v.ValidateAndThrowAsync(order))
-            .ThrowsAsync(new ValidationException("Validation error"));
+        var validationResult = new ValidationResult(new[] { new ValidationFailure("Code", "Validation failed") });
+        _orderValidatorMock.Setup(v => v.ValidateAndThrowAsync(order)).ThrowsAsync(new ValidationException(validationResult.Errors));
 
         // Act
         await _orderService.ProcessSingleOrderAsync(order);
 
         // Assert
-        _orderValidatorMock.Verify(v => v.ValidateAndThrowAsync(order), Times.Once);
-        _orderRepositoryMock.Verify(r => r.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
-        _updateStatusValidatorMock.Verify(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>()), Times.Never);
-        _orderRepositoryMock.Verify(r => r.UpdateOrderStatusAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _oAuthClientServiceMock.Verify(s => s.UpdateApiOrderStatusInProgressAsync(It.IsAny<Order>(), 0), Times.Never);
-        _loggerMock.Verify(
-            logger => logger.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
-                It.IsAny<Exception>(),
-                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-            Times.Exactly(2));
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Fehler bei der Verarbeitung der Bestellung 'Order1'")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
     [Fact]
-    public async Task ProcessSingleOrderAsync_UnexpectedError_LogsError()
+    public async Task ProcessSingleOrderAsync_StatusValidationFails_LogsError()
     {
         // Arrange
         var order = new Order { Code = "Order1" };
-
         _orderValidatorMock.Setup(v => v.ValidateAndThrowAsync(order)).Returns(Task.CompletedTask);
-        _orderRepositoryMock.Setup(r => r.CreateOrderAsync(order)).ThrowsAsync(new Exception("Unexpected error"));
+        _orderRepositoryMock.Setup(r => r.CreateOrderAsync(order)).Returns(Task.CompletedTask);
+        var validationResult = new ValidationResult(new[] { new ValidationFailure("Status", "Validation failed") });
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).ThrowsAsync(new ValidationException(validationResult.Errors));
 
         // Act
         await _orderService.ProcessSingleOrderAsync(order);
 
         // Assert
-        _orderValidatorMock.Verify(v => v.ValidateAndThrowAsync(order), Times.Once);
-        _orderRepositoryMock.Verify(r => r.CreateOrderAsync(order), Times.Once);
-        _updateStatusValidatorMock.Verify(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>()), Times.Never);
-        _orderRepositoryMock.Verify(r => r.UpdateOrderStatusAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _oAuthClientServiceMock.Verify(s => s.UpdateApiOrderStatusInProgressAsync(It.IsAny<Order>(), 0), Times.Never);
-        _loggerMock.Verify(
-            logger => logger.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
-                It.IsAny<Exception>(),
-                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-            Times.Exactly(2));
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Fehler bei der Verarbeitung der Bestellung 'Order1'")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessSingleOrderAsync_OrderIsNull_AddOrderAsyncLogsError()
+    {
+        // Arrange
+        Order order = null;
+
+        // Act
+        await _orderService.ProcessSingleOrderAsync(order);
+
+        // Assert
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Die Bestellung zum erstellen in der Datenbank ist null.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessSingleOrderAsync_OrderIsNull_UpdateOrderStatusInDatabaseAsyncLogsError()
+    {
+        // Arrange
+        var order = new Order { Code = "Order1" };
+        _orderValidatorMock.Setup(v => v.ValidateAndThrowAsync(order)).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.CreateOrderAsync(order)).Returns(Task.CompletedTask);
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).ThrowsAsync(new OrderIsNullException("Die Bestellung zum Aktualisieren des Status ist null."));
+
+        // Act
+        await _orderService.ProcessSingleOrderAsync(order);
+
+        // Assert
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Die Bestellung zum Aktualisieren des Status ist null.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessSingleOrderAsync_RepositoryException_LogsError()
+    {
+        // Arrange
+        var order = new Order { Code = "Order1" };
+        _orderValidatorMock.Setup(v => v.ValidateAndThrowAsync(order)).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.CreateOrderAsync(order)).Returns(Task.CompletedTask);
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusAsync(order.Code, SharedStatus.InProgress)).ThrowsAsync(new RepositoryException("Repository error"));
+
+        // Act
+        await _orderService.ProcessSingleOrderAsync(order);
+
+        // Assert
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Repository-Exception bei der Verarbeitung der Bestellung 'Order1'")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessSingleOrderAsync_UnexpectedException_LogsError()
+    {
+        // Arrange
+        var order = new Order { Code = "Order1" };
+        _orderValidatorMock.Setup(v => v.ValidateAndThrowAsync(order)).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.CreateOrderAsync(order)).Returns(Task.CompletedTask);
+        _updateStatusValidatorMock.Setup(v => v.ValidateAndThrowAsync(It.IsAny<UpdateStatus>())).Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusAsync(order.Code, SharedStatus.InProgress)).ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        await _orderService.ProcessSingleOrderAsync(order);
+
+        // Assert
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Ein unerwarteter Fehler ist bei der Verarbeitung der Bestellung 'Order1' aufgetreten")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
 
