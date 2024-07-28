@@ -556,4 +556,69 @@ public class OrderServiceTests
     }
     
     //UpdateOrderStatusByOrderCodeAsync
+    [Fact]
+    public async Task UpdateOrderStatusByOrderCodeAsync_ValidOrderCode_UpdatesStatusSuccessfully()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var newStatus = "Completed";
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus))
+                            .Returns(Task.CompletedTask);
+
+        // Act
+        await _orderService.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus);
+
+        // Assert
+        _orderRepositoryMock.Verify(r => r.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus), Times.Once);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Der Status der Bestellung mit dem OrderCode '{orderCode}' wurde in der Datenbank erfolgreich auf '{newStatus}' aktualisiert.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateOrderStatusByOrderCodeAsync_RepositoryException_LogsError()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var newStatus = "Completed";
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus))
+                            .ThrowsAsync(new RepositoryException("Repository error"));
+
+        // Act
+        await _orderService.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus);
+
+        // Assert
+        _orderRepositoryMock.Verify(r => r.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus), Times.Once);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim aktualisieren des Status '{newStatus}' für die Bestellung mit dem OrderCode '{orderCode}'.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateOrderStatusByOrderCodeAsync_UnexpectedException_LogsError()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var newStatus = "Completed";
+        _orderRepositoryMock.Setup(r => r.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus))
+                            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        await _orderService.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus);
+
+        // Assert
+        _orderRepositoryMock.Verify(r => r.UpdateOrderStatusByOrderCodeAsync(orderCode, newStatus), Times.Once);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim aktualisieren des Status '{newStatus}' für die Bestellung mit dem OrderCode '{orderCode}'.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
 }
