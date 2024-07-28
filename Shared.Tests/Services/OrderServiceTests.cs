@@ -621,4 +621,78 @@ public class OrderServiceTests
             It.IsAny<Exception>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
+    
+    //UpdateOrderStatusByIdAsync
+    [Fact]
+    public async Task UpdateOrderStatusByIdAsync_UpdatesStatusSuccessfully()
+    {
+        // Arrange
+        int orderId = 1;
+        string status = "Shipped";
+
+        _orderRepositoryMock.Setup(x => x.UpdateOrderStatusByIdAsync(orderId, status))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _orderService.UpdateOrderStatusByIdAsync(orderId, status);
+
+        // Assert
+        _orderRepositoryMock.Verify(x => x.UpdateOrderStatusByIdAsync(orderId, status), Times.Once);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Exactly(2));    
+    }
+    
+    [Fact]
+    public async Task UpdateOrderStatusByIdAsync_ThrowsRepositoryException_OnRepositoryFailure()
+    {
+        // Arrange
+        int orderId = 1;
+        string status = "Cancelled";
+        var repositoryException = new RepositoryException("Database error");
+
+        _orderRepositoryMock.Setup(x => x.UpdateOrderStatusByIdAsync(orderId, status))
+            .ThrowsAsync(repositoryException);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() => _orderService.UpdateOrderStatusByIdAsync(orderId, status));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task UpdateOrderStatusByIdAsync_ThrowsOrderServiceException_OnUnexpectedError()
+    {
+        // Arrange
+        int orderId = 1;
+        string status = "Processing";
+        var unexpectedException = new Exception("Unexpected error");
+
+        _orderRepositoryMock.Setup(x => x.UpdateOrderStatusByIdAsync(orderId, status))
+            .ThrowsAsync(unexpectedException);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderServiceException>(() => _orderService.UpdateOrderStatusByIdAsync(orderId, status));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);    
+    }
 }
