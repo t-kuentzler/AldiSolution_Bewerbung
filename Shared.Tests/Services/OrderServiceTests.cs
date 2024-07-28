@@ -297,4 +297,81 @@ public class OrderServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
+    
+    //GetOrderStatusByOrderCodeAsync
+    [Fact]
+    public async Task GetOrderStatusByOrderCodeAsync_ValidOrderCode_ReturnsOrderStatus()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var expectedStatus = "InProgress";
+        _orderRepositoryMock.Setup(r => r.GetOrderStatusByOrderCodeAsync(orderCode)).ReturnsAsync(expectedStatus);
+
+        // Act
+        var result = await _orderService.GetOrderStatusByOrderCodeAsync(orderCode);
+
+        // Assert
+        Assert.Equal(expectedStatus, result);
+        _orderRepositoryMock.Verify(r => r.GetOrderStatusByOrderCodeAsync(orderCode), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrderStatusByOrderCodeAsync_OrderStatusIsNull_ThrowsOrderStatusIsNullException()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        _orderRepositoryMock.Setup(r => r.GetOrderStatusByOrderCodeAsync(orderCode)).ReturnsAsync((string?)null);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<OrderStatusIsNullException>(() => _orderService.GetOrderStatusByOrderCodeAsync(orderCode));
+        Assert.Equal("OrderStatusIsNullException", exception.GetType().Name);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Der Status für die Order mit dem OrderCode '{orderCode}' ist null oder empty.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrderStatusByOrderCodeAsync_RepositoryException_ThrowsAndLogsRepositoryException()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var repositoryException = new RepositoryException("Repository error");
+        _orderRepositoryMock.Setup(r => r.GetOrderStatusByOrderCodeAsync(orderCode)).ThrowsAsync(repositoryException);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<RepositoryException>(() => _orderService.GetOrderStatusByOrderCodeAsync(orderCode));
+
+        // Assert
+        Assert.Equal(repositoryException, exception);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim Abrufen von Order mit dem OrderCode '{orderCode}'")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrderStatusByOrderCodeAsync_UnexpectedException_ThrowsAndLogsOrderServiceException()
+    {
+        // Arrange
+        var orderCode = "Order1";
+        var unexpectedException = new Exception("Unexpected error");
+        _orderRepositoryMock.Setup(r => r.GetOrderStatusByOrderCodeAsync(orderCode)).ThrowsAsync(unexpectedException);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<OrderServiceException>(() => _orderService.GetOrderStatusByOrderCodeAsync(orderCode));
+
+        // Assert
+        Assert.Equal("Fehler beim Abrufen der Order mit dem OrderCode 'Order1'.", exception.Message);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim Abrufen von Order mit dem OrderCode '{orderCode}'")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
 }
