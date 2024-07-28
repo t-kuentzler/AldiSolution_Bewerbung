@@ -216,7 +216,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"'{nameof(orderCode)}' darf nicht null oder leer sein.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -249,7 +249,15 @@ public class OrderServiceTests
             .ReturnsAsync((Order?)null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<OrderIsNullException>(() => _orderService.GetOrderByOrderCodeAsync(orderCode));
+        var exception = await Assert.ThrowsAsync<OrderIsNullException>(() => _orderService.GetOrderByOrderCodeAsync(orderCode));
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Order darf nicht null sein.")),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
     }
 
     [Fact]
@@ -268,7 +276,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim Abrufen von Order mit dem OrderCode '{orderCode}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -292,7 +300,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim Abrufen von Order mit dem OrderCode '{orderCode}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -638,14 +646,24 @@ public class OrderServiceTests
 
         // Assert
         _orderRepositoryMock.Verify(x => x.UpdateOrderStatusByIdAsync(orderId, status), Times.Once);
+        
         _loggerMock.Verify(
             logger => logger.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Es wird versucht den Status der Bestellung mit der Id '{orderId}' in der Datenbank auf '{status}' zu aktualisiert.")),
                 It.IsAny<Exception>(),
-                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
-            Times.Exactly(2));    
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), 
+            Times.Once);
+        
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Der Status der Bestellung mit der Id '{orderId}' wurde in der Datenbank erfolgreich auf '{status}' aktualisiert.")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), 
+            Times.Once);
     }
     
     [Fact]
@@ -666,7 +684,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim aktualisieren des Status '{status}' für die Bestellung mit der Id '{orderId}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -690,7 +708,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim aktualisieren des Status '{status}' für die Bestellung mit der Id '{orderId}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);    
@@ -728,8 +746,15 @@ public class OrderServiceTests
     
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(2, result.Count); // Erwarten Sie die gleiche Anzahl von Orders, die Sie im Setup festgelegt haben
+        Assert.Equal(2, result.Count);
         _orderRepositoryMock.Verify(repo => repo.GetOrdersWithStatusAsync(status), Times.Once);
+        
+        _loggerMock.Verify(l => l.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
     }
     
     [Theory]
@@ -744,7 +769,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"'{nameof(status)}' darf nicht null oder leer sein.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -766,7 +791,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim Abrufen von allen Bestellungen mit dem Status '{status}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -789,7 +814,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim Abrufen von allen Bestellungen mit dem Status '{status}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -830,6 +855,15 @@ public class OrderServiceTests
     
         // Assert
         Assert.NotNull(result);
+        
+        _loggerMock.Verify(
+            logger => logger.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
     }
     
     [Theory]
@@ -844,7 +878,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"'{nameof(orderId)}' muss größer als 0 sein.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -867,7 +901,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim Abrufen von Bestellung mit der Id '{orderId}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -891,7 +925,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim Abrufen von Bestellung mit der Id '{orderId}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -912,7 +946,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"order mit Id {nonExistingOrderId} ist null.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -955,7 +989,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("'status' darf nicht null sein.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -1012,7 +1046,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Es ist ein Validierungsfehler aufgetreten beim suchen von Order mit dem searchTerm '{searchTerm.value}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -1038,7 +1072,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim Suchen von stornierten Bestellungen mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -1064,7 +1098,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim Suchen von stornierten Bestellungen mit dem Suchbegriff '{searchTerm.value}' und Status '{status}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -1359,7 +1393,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Es wurde keine Order mit der Id '3' gefunden.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);    
@@ -1399,7 +1433,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Unerwarteter Fehler beim abrufen der Order mit der Id '5'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);  
@@ -1448,7 +1482,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim aktualisieren der Order mit der Id '{orders[0].Id}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
@@ -1474,7 +1508,7 @@ public class OrderServiceTests
             logger => logger.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim aktualisieren der Order mit der Id '{orders[0].Id}'.")),
                 It.IsAny<Exception>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);    
