@@ -1404,4 +1404,79 @@ public class OrderServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);  
     }
+    
+    //UpdateOrderExportedValue
+    [Fact]
+    public async Task UpdateOrderExportedValue_UpdatesExportedForAllOrders()
+    {
+        // Arrange
+        var orders = new List<Order>
+        {
+            new Order { Id = 1, Exported = false },
+            new Order { Id = 2, Exported = false }
+        };
+        bool newExportedValue = true;
+
+        _orderRepositoryMock.Setup(x => x.UpdateOrderAsync(It.IsAny<Order>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _orderService.UpdateOrderExportedValue(orders, newExportedValue);
+
+        // Assert
+        Assert.All(orders, order => Assert.True(order.Exported));
+        _orderRepositoryMock.Verify(x => x.UpdateOrderAsync(It.IsAny<Order>()), Times.Exactly(orders.Count));
+    }
+    
+    [Fact]
+    public async Task UpdateOrderExportedValue_ThrowsRepositoryException_OnRepositoryFailure()
+    {
+        // Arrange
+        var orders = new List<Order>
+        {
+            new Order { Id = 3, Exported = false }
+        };
+        bool newExportedValue = true;
+
+        _orderRepositoryMock.Setup(x => x.UpdateOrderAsync(It.IsAny<Order>()))
+            .ThrowsAsync(new RepositoryException("DB Error"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() => _orderService.UpdateOrderExportedValue(orders, newExportedValue));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task UpdateOrderExportedValue_ThrowsOrderServiceException_OnUnexpectedError()
+    {
+        // Arrange
+        var orders = new List<Order>
+        {
+            new Order { Id = 4, Exported = false }
+        };
+        bool newExportedValue = false;
+
+        _orderRepositoryMock.Setup(x => x.UpdateOrderAsync(It.IsAny<Order>()))
+            .ThrowsAsync(new Exception("Unexpected Error"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderServiceException>(() => _orderService.UpdateOrderExportedValue(orders, newExportedValue));
+
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);    
+    }
 }
