@@ -917,4 +917,156 @@ public class OrderServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
+    
+    //SearchOrdersAsync
+    [Fact]
+    public async Task SearchOrdersAsync_ReturnsEmptyList_WhenSearchTermIsNullOrWhiteSpace()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = " "
+        };
+        string status = "AnyStatus";
+    
+        // Act
+        var result = await _orderService.SearchOrdersAsync(searchTerm, status);
+    
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+    
+    [Fact]
+    public async Task SearchOrdersAsync_ThrowsArgumentNullException_WhenStatusIsNull()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = "valid"
+        };
+        string? status = null;
+    
+    
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _orderService.SearchOrdersAsync(searchTerm, status));
+    
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task SearchOrdersAsync_ReturnsOrders_WhenValidationSucceeds()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm { value = "valid" };
+        var status = "DELIVERED";
+        var orders = new List<Order>
+        {
+            new Order { Id = 1, Status = status },
+            new Order { Id = 2, Status = status }
+        };
+
+        _searchTermValidatorMock.Setup(x => x.ValidateAndThrowAsync(searchTerm))
+            .Returns(Task.CompletedTask);
+        _orderRepositoryMock.Setup(x => x.SearchOrdersAsync(searchTerm, status))
+            .ReturnsAsync(orders);
+
+        // Act
+        var result = await _orderService.SearchOrdersAsync(searchTerm, status);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.All(result, order => Assert.Equal(status, order.Status)); 
+
+        _searchTermValidatorMock.Verify(x => x.ValidateAndThrowAsync(searchTerm), Times.Once); 
+        _orderRepositoryMock.Verify(x => x.SearchOrdersAsync(searchTerm, status), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchOrdersAsync_ThrowsValidationException_WhenValidationFails()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm { value = "invalid" };
+        var status = "DELIVERED";
+        var validationException = new ValidationException("TEST");
+
+        _searchTermValidatorMock.Setup(x => x.ValidateAndThrowAsync(searchTerm))
+            .ThrowsAsync(validationException);
+        _orderRepositoryMock.Setup(x => x.SearchOrdersAsync(searchTerm, status))
+            .ReturnsAsync(new List<Order>());
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ValidationException>(() => _orderService.SearchOrdersAsync(searchTerm, status));
+
+        _searchTermValidatorMock.Verify(x => x.ValidateAndThrowAsync(searchTerm), Times.Once); 
+        _orderRepositoryMock.Verify(x => x.SearchOrdersAsync(It.IsAny<SearchTerm>(), It.IsAny<string>()), Times.Never); 
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task SearchOrdersAsync_ThrowsRepositoryException_WhenRepositoryThrowsRepositoryException()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = "Test"
+        };
+        string status = "anyStatus";
+        
+        _orderRepositoryMock.Setup(repo => repo.SearchOrdersAsync(searchTerm ,status))
+            .ThrowsAsync(new RepositoryException("Test exception"));
+    
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() => _orderService.SearchOrdersAsync(searchTerm, status));
+    
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task SearchOrdersAsync_ThrowsOrderServiceException_WhenUnexpectedExceptionOccurs()
+    {
+        // Arrange
+        var searchTerm = new SearchTerm
+        {
+            value = "Test"
+        };
+        string status = "anyStatus";
+        
+        _orderRepositoryMock.Setup(repo => repo.SearchOrdersAsync(searchTerm ,status))
+            .ThrowsAsync(new Exception("Unexpected error"));
+    
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderServiceException>(() => _orderService.SearchOrdersAsync(searchTerm, status));
+    
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
 }
