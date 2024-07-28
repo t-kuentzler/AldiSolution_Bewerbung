@@ -485,4 +485,75 @@ public class OrderServiceTests
             It.IsAny<Exception>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
+    
+    //GetOrdersByStatusAsync
+     [Fact]
+    public async Task GetOrdersByStatusAsync_ValidStatus_ReturnsOrders()
+    {
+        // Arrange
+        var status = "Pending";
+        var expectedOrders = new List<Order>
+        {
+            new Order { Code = "Order1" },
+            new Order { Code = "Order2" }
+        };
+        _orderRepositoryMock.Setup(r => r.GetOrdersWithStatusAsync(status)).ReturnsAsync(expectedOrders);
+
+        // Act
+        var result = await _orderService.GetOrdersByStatusAsync(status);
+
+        // Assert
+        Assert.Equal(expectedOrders, result);
+        _orderRepositoryMock.Verify(r => r.GetOrdersWithStatusAsync(status), Times.Once);
+        _loggerMock.Verify(l => l.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrdersByStatusAsync_RepositoryException_LogsErrorAndReturnsEmptyList()
+    {
+        // Arrange
+        var status = "Pending";
+        _orderRepositoryMock.Setup(r => r.GetOrdersWithStatusAsync(status)).ThrowsAsync(new RepositoryException("Repository error"));
+
+        // Act
+        var result = await _orderService.GetOrdersByStatusAsync(status);
+
+        // Assert
+        Assert.Empty(result);
+        _orderRepositoryMock.Verify(r => r.GetOrdersWithStatusAsync(status), Times.Once);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Repository-Exception beim Abrufen von allen Bestellungen mit dem Status '{status}'.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrdersByStatusAsync_UnexpectedException_LogsErrorAndReturnsEmptyList()
+    {
+        // Arrange
+        var status = "Pending";
+        _orderRepositoryMock.Setup(r => r.GetOrdersWithStatusAsync(status)).ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var result = await _orderService.GetOrdersByStatusAsync(status);
+
+        // Assert
+        Assert.Empty(result);
+        _orderRepositoryMock.Verify(r => r.GetOrdersWithStatusAsync(status), Times.Once);
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString().Contains($"Unerwarteter Fehler beim Abrufen von allen Bestellungen mit dem Status '{status}'.")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+    
+    //UpdateOrderStatusByOrderCodeAsync
 }
