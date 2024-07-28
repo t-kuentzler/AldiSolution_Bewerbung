@@ -695,4 +695,119 @@ public class OrderServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);    
     }
+    
+    //GetALlOrdersByStatusAsync
+    [Fact]
+    public async Task GetAllOrdersByStatusAsync_ReturnsOrders_WhenStatusIsValid()
+    {
+        // Arrange
+        var status = "DELIVERED";
+        var orders = new List<Order>
+        {
+            new Order()
+            {
+                Id = 1,
+                Consignments = new List<Consignment>()
+                {
+                }
+            },
+            new Order()
+            {
+                Id = 2,
+                Consignments = new List<Consignment>()
+                {
+                }
+            },
+        };
+    
+        _orderRepositoryMock.Setup(repo => repo.GetOrdersWithStatusAsync(status))
+            .ReturnsAsync(orders);
+    
+        // Act
+        var result = await _orderService.GetAllOrdersByStatusAsync(status);
+    
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count); // Erwarten Sie die gleiche Anzahl von Orders, die Sie im Setup festgelegt haben
+        _orderRepositoryMock.Verify(repo => repo.GetOrdersWithStatusAsync(status), Times.Once);
+    }
+    
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task GetAllOrdersByStatusAsync_ThrowsArgumentException_WhenStatusIsNullOrEmpty(string status)
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _orderService.GetAllOrdersByStatusAsync(status));
+    
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    [Fact]
+    public async Task GetAllOrdersByStatusAsync_ThrowsRepositoryException_WhenRepositoryExceptionOccurs()
+    {
+        // Arrange
+        var status = "SHIPPED";
+    
+        _orderRepositoryMock.Setup(repo => repo.GetOrdersWithStatusAsync(status))
+            .ThrowsAsync(new RepositoryException("Test exception"));
+    
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() => _orderService.GetAllOrdersByStatusAsync(status));
+    
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    
+    [Fact]
+    public async Task GetAllOrdersByStatusAsync_ThrowsOrderServiceException_WhenUnexpectedExceptionOccurs()
+    {
+        // Arrange
+        var status = "PROCESSING";
+    
+        _orderRepositoryMock.Setup(repo => repo.GetOrdersWithStatusAsync(status))
+            .ThrowsAsync(new Exception("Unexpected error"));
+    
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderServiceException>(() => _orderService.GetAllOrdersByStatusAsync(status));
+    
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+    
+    
+    [Fact]
+    public async Task GetAllOrdersByStatusAsync_ReturnsEmptyList_WhenNoOrdersFound()
+    {
+        // Arrange
+        var status = "CANCELLED";
+        _orderRepositoryMock.Setup(repo => repo.GetOrdersWithStatusAsync(status)).ReturnsAsync(new List<Order>());
+    
+        // Act
+        var result = await _orderService.GetAllOrdersByStatusAsync(status);
+    
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
 }
