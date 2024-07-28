@@ -1069,4 +1069,253 @@ public class OrderServiceTests
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);
     }
+    
+    //ProcessOrderEntriesCancellationAsync
+    //ValidateInputs
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task ProcessOrderEntriesCancellationAsync_ThrowsInvalidIdException_WhenOrderIdIsInvalid(int orderId)
+    {
+        // Arrange
+        var orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 1 } }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidIdException>(() => _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries));
+    }
+    
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ThrowsOrderCodeIsNullException_WhenOrderCodeIsInvalid()
+    {
+        // Arrange
+        var orderId = 1;
+        var orderCode = "";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 1 } }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderCodeIsNullException>(() => _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries));
+    }
+    
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ThrowsValidationException_WhenNoEntriesAreMarkedAsCancelled()
+    {
+        // Arrange
+        var orderId = 1;
+        var orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = false, CancelQuantity = 1 } },
+            { 2, new CancelOrderEntryModel { IsCancelled = false, CancelQuantity = 2 } }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ValidationException>(() => _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries));
+    }
+    
+    //ValidateCancellatinoEntriesAsync
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ValidatesEntriesSuccessfully_WhenAllEntriesAreValid()
+    {
+        // Arrange
+        int orderId = 1;
+        string orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 2, OrderEntryId = 1 } }
+        };
+        var orderEntries = new List<OrderEntry>
+        {
+            new OrderEntry { Id = 1, Quantity = 5, CanceledOrReturnedQuantity = 0 }
+        };
+        var order = new Order { Entries = orderEntries };
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(orderId)).ReturnsAsync(order);
+        _cancelOrderEntryValidatorMock.Setup(x => x.ValidateAndThrowAsync(It.IsAny<CancelOrderEntryModel>())).Returns(Task.CompletedTask);
+        _oAuthClientServiceMock.Setup(x => x.CancelOrderEntriesAsync(orderCode, It.IsAny<List<OrderCancellationEntry>>())).ReturnsAsync(true);
+    
+        // Act & Assert
+        await _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries); 
+    }
+
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ThrowsValidationException_WhenEntriesAreInvalid()
+    {
+        // Arrange
+        int orderId = 1;
+        string orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = -1, OrderEntryId = 1 } } // Ungültige Menge
+        };
+        var orderEntries = new List<OrderEntry>
+        {
+            new OrderEntry { Id = 1, Quantity = 5, CanceledOrReturnedQuantity = 0 }
+        };
+        var order = new Order { Entries = orderEntries }; 
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(orderId)).ReturnsAsync(order);
+        _cancelOrderEntryValidatorMock.Setup(x => x.ValidateAndThrowAsync(It.IsAny<CancelOrderEntryModel>()))
+            .Throws(new ValidationException("Invalid cancellation quantity."));
+        
+        // Act & Assert
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries));
+    }
+
+
+
+    //ProcessCancellationsAsync
+    [Fact]
+    public async Task ProcessCancellationsAsync_CompletesSuccessfully_WhenAllQuantitiesAreValid()
+    {
+        // Arrange
+        var orderId = 1;
+        var orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 3, OrderEntryId = 1 } }
+        };
+        var orderEntries = new List<OrderEntry>
+        {
+            new OrderEntry { Id = 1, Quantity = 5, CanceledOrReturnedQuantity = 1 } // Valid cancellation scenario
+        };
+        var order = new Order { Entries = orderEntries };
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(orderId)).ReturnsAsync(order);
+        _quantityCheckServiceMock.Setup(x => x.IsQuantityExceedingAvailable(1, 3, 5)).Returns(false);
+        
+        await _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries);
+
+        
+        _quantityCheckServiceMock.Verify(x => x.IsQuantityExceedingAvailable(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+        Assert.All(order.Entries, entry => Assert.True(entry.CanceledOrReturnedQuantity <= entry.Quantity));
+    }
+
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ThrowsQuantityExceededException_WhenCancelledQuantityExceedsAvailable()
+    {
+        // Arrange
+        int orderId = 1;
+        string orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 10, OrderEntryId = 1 } } // Excessive quantity
+        };
+        var orderEntries = new List<OrderEntry>
+        {
+            new OrderEntry { Id = 1, Quantity = 5, CanceledOrReturnedQuantity = 0 } // Less quantity than requested
+        };
+        var order = new Order { Entries = orderEntries };
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(orderId)).ReturnsAsync(order);
+        _quantityCheckServiceMock.Setup(x => x.IsQuantityExceedingAvailable(0, 10, 5)).Returns(true);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<QuantityExceededException>(() => 
+            _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries));
+
+    }
+
+    //SendCancellationRequestsAsync
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ReturnsTrue_WhenCancellationRequestsAreSuccessful()
+    {
+        // Arrange
+        int orderId = 1;
+        string orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 1, OrderEntryId = 1 } }
+        };
+        var order = new Order { Entries = new List<OrderEntry>() };
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(orderId)).ReturnsAsync(order);
+        _oAuthClientServiceMock.Setup(x => x.CancelOrderEntriesAsync(orderCode, It.IsAny<List<OrderCancellationEntry>>())).ReturnsAsync(true);
+
+        // Act
+        bool result = await _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries);
+
+        // Assert
+        Assert.True(result);
+        _oAuthClientServiceMock.Verify(x => x.CancelOrderEntriesAsync(orderCode, It.IsAny<List<OrderCancellationEntry>>()), Times.Once);
+    }
+
+    //CancelOrderEntriesAsync
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ProcessesEachValidCancellationEntry()
+    {
+        // Arrange
+        var order = new Order { Entries = new List<OrderEntry> { new OrderEntry { EntryNumber = 1 }, new OrderEntry { EntryNumber = 2 } } };
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 1, OrderEntryId = 1 } },
+            { 2, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 1, OrderEntryId = 2 } }
+        };
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(It.IsAny<int>())).ReturnsAsync(order);
+        _oAuthClientServiceMock.Setup(x => x.CancelOrderEntriesAsync(It.IsAny<string>(), It.IsAny<List<OrderCancellationEntry>>())).ReturnsAsync(true);
+        _cancellationServiceMock.Setup(x => x.ProcessCancellationEntry(It.IsAny<Order>(), It.IsAny<OrderEntry>(), It.IsAny<OrderCancellationEntry>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _orderService.ProcessOrderEntriesCancellationAsync(1, "Order123", cancelledEntries);
+
+        // Assert
+        Assert.True(result);
+        _cancellationServiceMock.Verify(x => x.ProcessCancellationEntry(It.IsAny<Order>(), It.IsAny<OrderEntry>(), It.IsAny<OrderCancellationEntry>()), Times.Exactly(cancelledEntries.Count));
+    }
+
+
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_ReturnsFalse_WhenCancellationRequestsFail()
+    {
+        // Arrange
+        int orderId = 1;
+        string orderCode = "Order123";
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 1, OrderEntryId = 1 } }
+        };
+        var order = new Order { Entries = new List<OrderEntry>() };
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(orderId)).ReturnsAsync(order);
+        _oAuthClientServiceMock.Setup(x => x.CancelOrderEntriesAsync(orderCode, It.IsAny<List<OrderCancellationEntry>>())).ReturnsAsync(false);
+
+        // Act
+        bool result = await _orderService.ProcessOrderEntriesCancellationAsync(orderId, orderCode, cancelledEntries);
+
+        // Assert
+        Assert.False(result);
+        _oAuthClientServiceMock.Verify(x => x.CancelOrderEntriesAsync(orderCode, It.IsAny<List<OrderCancellationEntry>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessOrderEntriesCancellationAsync_CancelsWholeOrder_WhenAllEntriesAreCancelled()
+    {
+        // Arrange
+        var order = new Order { Entries = new List<OrderEntry> { new OrderEntry { EntryNumber = 1 } } };
+        var cancelledEntries = new Dictionary<int, CancelOrderEntryModel>
+        {
+            { 1, new CancelOrderEntryModel { IsCancelled = true, CancelQuantity = 1, OrderEntryId = 1 } }
+        };
+
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(It.IsAny<int>())).ReturnsAsync(order);
+        _oAuthClientServiceMock.Setup(x => x.CancelOrderEntriesAsync(It.IsAny<string>(), It.IsAny<List<OrderCancellationEntry>>())).ReturnsAsync(true);
+        _cancellationServiceMock.Setup(x => x.AreAllOrderEntriesCancelled(It.IsAny<Order>())).Returns(true);
+        _cancellationServiceMock.Setup(x => x.CancelWholeOrder(It.IsAny<Order>())).Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _orderService.ProcessOrderEntriesCancellationAsync(1, "Order123", cancelledEntries);
+
+        // Assert
+        Assert.True(result);
+        _cancellationServiceMock.Verify(x => x.CancelWholeOrder(It.IsAny<Order>()), Times.Once);
+    }
 }
