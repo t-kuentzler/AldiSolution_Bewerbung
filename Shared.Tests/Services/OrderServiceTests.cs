@@ -1318,4 +1318,90 @@ public class OrderServiceTests
         Assert.True(result);
         _cancellationServiceMock.Verify(x => x.CancelWholeOrder(It.IsAny<Order>()), Times.Once);
     }
+    
+    //GetOrdersByIds
+    [Fact]
+    public async Task GetOrdersByIds_ReturnsOrders_WhenAllIdsAreValid()
+    {
+        // Arrange
+        var selectedOrders = new List<int> { 1, 2 };
+        var returnedOrders = new List<Order>
+        {
+            new Order { Id = 1 },
+            new Order { Id = 2 }
+        };
+
+        _orderRepositoryMock.SetupSequence(x => x.GetOrderByIdAsync(It.IsAny<int>()))
+            .ReturnsAsync(returnedOrders[0])
+            .ReturnsAsync(returnedOrders[1]);
+
+        // Act
+        var result = await _orderService.GetOrdersByIds(selectedOrders);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        _orderRepositoryMock.Verify(x => x.GetOrderByIdAsync(It.IsAny<int>()), Times.Exactly(2));
+    }
+    
+    [Fact]
+    public async Task GetOrdersByIds_LogsWarning_WhenOrderDoesNotExist()
+    {
+        // Arrange
+        var selectedOrders = new List<int> { 3 };
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(3)).ReturnsAsync((Order?)null);
+
+        // Act
+        var result = await _orderService.GetOrdersByIds(selectedOrders);
+
+        // Assert
+        Assert.Empty(result);
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);    
+    }
+    
+    [Fact]
+    public async Task GetOrdersByIds_ThrowsRepositoryException_WhenRepositoryExceptionOccurs()
+    {
+        // Arrange
+        var selectedOrders = new List<int> { 4 };
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(4)).ThrowsAsync(new RepositoryException("DB Error"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<RepositoryException>(() => _orderService.GetOrdersByIds(selectedOrders));
+        
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);  
+    }
+    
+    [Fact]
+    public async Task GetOrdersByIds_ThrowsOrderServiceException_WhenUnexpectedExceptionOccurs()
+    {
+        // Arrange
+        var selectedOrders = new List<int> { 5 };
+        _orderRepositoryMock.Setup(x => x.GetOrderByIdAsync(5)).ThrowsAsync(new Exception("Unexpected Error"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OrderServiceException>(() => _orderService.GetOrdersByIds(selectedOrders));
+        
+        _loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);  
+    }
 }
