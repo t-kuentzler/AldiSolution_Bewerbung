@@ -22,14 +22,13 @@ public class OrderService : IOrderService
     private readonly IQuantityCheckService _quantityCheckService;
 
 
-
-
     public OrderService(ICancellationService cancellationService, IOAuthClientService oAuthClientService,
         ILogger<OrderService> logger, IValidatorWrapper<Order> orderValidator,
         IValidatorWrapper<UpdateStatus> updateStatusValidator, IOrderRepository orderRepository,
-        IValidatorWrapper<SearchTerm> searchTermValidator, IValidatorWrapper<CancelOrderEntryModel> cancelOrderEntryValidator,
+        IValidatorWrapper<SearchTerm> searchTermValidator,
+        IValidatorWrapper<CancelOrderEntryModel> cancelOrderEntryValidator,
         IQuantityCheckService quantityCheckService
-        )
+    )
     {
         _cancellationService = cancellationService;
         _oAuthClientService = oAuthClientService;
@@ -54,12 +53,63 @@ public class OrderService : IOrderService
         {
             _logger.LogError($"Fehler bei der Verarbeitung der Bestellung '{order.Code}': {ex.Message}");
         }
+        catch (OrderIsNullException ex)
+        {
+            _logger.LogError($"{ex.Message}");
+        }
+        catch (RepositoryException ex)
+        {
+            _logger.LogError(ex,
+                $"Repository-Exception bei der Verarbeitung der Bestellung '{order.Code}': {ex.Message}");
+        }
         catch (Exception ex)
         {
             _logger.LogError(
                 $"Ein unerwarteter Fehler ist bei der Verarbeitung der Bestellung '{order.Code}' aufgetreten: {ex.Message}");
         }
     }
+
+    private async Task AddOrderAsync(Order order)
+    {
+        _logger.LogInformation("Es wird versucht, eine Bestellung in der Datenbank zu erstellen.");
+
+        if (order == null)
+        {
+            throw new OrderIsNullException("Die Bestellung zum erstellen in der Datenbank ist null.");
+        }
+
+        await _orderValidator.ValidateAndThrowAsync(order);
+        await _orderRepository.CreateOrderAsync(order);
+        _logger.LogInformation(
+            $"Die Bestellung mit dem OrderCode '{order.Code}' wurde erfolgreich in der Datenbank erstellt.");
+    }
+
+    private async Task UpdateOrderStatusInDatabaseAsync(Order? order, string status)
+    {
+        if (order == null)
+        {
+            throw new OrderIsNullException("Die Bestellung zum aktualisieren des Status ist null.");
+        }
+
+        var updateStatus = new UpdateStatus
+        {
+            Code = order.Code,
+            Status = status
+        };
+        await _updateStatusValidator.ValidateAndThrowAsync(updateStatus);
+
+        bool updateSuccess = await _orderRepository.UpdateOrderStatusAsync(order.Code, status);
+
+        if (!updateSuccess)
+        {
+            throw new RepositoryException(
+                $"Fehler beim Aktualisieren des Status in der Datenbank für Bestellung mit Code '{order.Code}'.");
+        }
+
+        _logger.LogInformation(
+            $"Bestellung mit Code '{order.Code}' wurde erfolgreich in der Datenbank auf '{status}' aktualisiert.");
+    }
+
 
     public async Task<Order> GetOrderByOrderCodeAsync(string orderCode)
     {
@@ -79,8 +129,9 @@ public class OrderService : IOrderService
 
             return order;
         }
-        catch (OrderIsNullException)
+        catch (OrderIsNullException ex)
         {
+            _logger.LogError(ex.Message);
             throw;
         }
         catch (RepositoryException ex)
@@ -96,67 +147,6 @@ public class OrderService : IOrderService
         }
     }
 
-    private async Task AddOrderAsync(Order order)
-    {
-        _logger.LogInformation("Es wird versucht, eine Bestellung in der Datenbank zu erstellen.");
-
-        if (order == null)
-        {
-            _logger.LogError("Die zu erstellende Bestellung ist null.");
-            throw new ArgumentNullException(nameof(order), "Die zu erstellende Bestellung ist null.");
-        }
-
-        try
-        {
-            await _orderValidator.ValidateAndThrowAsync(order);
-            await _orderRepository.CreateOrderAsync(order);
-            _logger.LogInformation(
-                $"Die Bestellung mit dem OrderCode '{order.Code}' wurde erfolgreich in der Datenbank erstellt.");
-        }
-        catch (ValidationException ex)
-        {
-            _logger.LogError(ex,
-                $"Bei der Bestellung mit dem Code '{order.Code}' ist ein Validierungsfehler aufgetreten: {ex.Message}");
-            throw;
-        }
-        catch (Exception ex)
-        {
-            var createOrderException = new CreateOrderException(order.Code, ex);
-            _logger.LogError(createOrderException.Message);
-            throw;
-        }
-    }
-
-    private async Task UpdateOrderStatusInDatabaseAsync(Order? order, string status)
-    {
-        if (order == null)
-        {
-            _logger.LogError("Die übergebene Bestellung ist null.");
-            throw new OrderIsNullException();
-        }
-
-        var updateStatus = new UpdateStatus
-        {
-            Code = order.Code,
-            Status = status
-        };
-        await _updateStatusValidator.ValidateAndThrowAsync(updateStatus);
-
-
-        bool updateSuccess = await _orderRepository.UpdateOrderStatusAsync(order.Code, status);
-
-        if (!updateSuccess)
-        {
-            throw new UpdateDatabaseException(
-                $"Fehler beim Aktualisieren des Status in der Datenbank für Bestellung mit Code '{order.Code}'.");
-        }
-        else
-        {
-            _logger.LogInformation(
-                $"Bestellung mit Code '{order.Code}' wurde erfolgreich in der Datenbank auf '{status}' aktualisiert.");
-        }
-    }
-    
     public async Task<string> GetOrderStatusByOrderCodeAsync(string orderCode)
     {
         try
@@ -165,9 +155,8 @@ public class OrderService : IOrderService
 
             if (string.IsNullOrEmpty(orderStatus))
             {
-                _logger.LogError($"Der Status für die Order mit dem OrderCode '{orderCode}' ist null oder empty.");
-
-                throw new OrderStatusIsNullException();
+                throw new OrderStatusIsNullException(
+                    $"Der Status für die Order mit dem OrderCode '{orderCode}' ist null oder empty.");
             }
 
             return orderStatus;
@@ -177,13 +166,18 @@ public class OrderService : IOrderService
             _logger.LogError(ex, $"Repository-Exception beim Abrufen von Order mit dem OrderCode '{orderCode}'.");
             throw;
         }
+        catch (OrderStatusIsNullException ex)
+        {
+            _logger.LogError(ex.Message);
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Unerwarteter Fehler beim Abrufen von Order mit dem OrderCode '{orderCode}'.");
             throw new OrderServiceException($"Fehler beim Abrufen der Order mit dem OrderCode '{orderCode}'.", ex);
         }
     }
-    
+
     public async Task<bool> UpdateSingleOrderStatusInDatabaseAsync(string orderCode, string status)
     {
         if (string.IsNullOrEmpty(orderCode))
@@ -225,12 +219,12 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            var updateOrderStatusException = new UpdateOrderStatusException(orderCode, ex);
-            _logger.LogError(updateOrderStatusException.Message);
+            _logger.LogError(ex,
+                $"Unerwarteter Fehler beim aktualisieren des Status der Order mit dem OrderCode '{orderCode}'.");
             return false;
         }
     }
-    
+
     public async Task<List<Order>> GetOrdersByStatusAsync(string status)
     {
         try
@@ -250,7 +244,7 @@ public class OrderService : IOrderService
 
         return new List<Order>();
     }
-    
+
     public async Task UpdateOrderStatusByOrderCodeAsync(string orderCode, string newStatus)
     {
         try
@@ -271,7 +265,7 @@ public class OrderService : IOrderService
                 $"Unerwarteter Fehler beim aktualisieren des Status '{newStatus}' für die Bestellung mit dem OrderCode '{orderCode}'.");
         }
     }
-    
+
     public async Task UpdateOrderStatusByIdAsync(int orderId, string status)
     {
         try
@@ -299,7 +293,7 @@ public class OrderService : IOrderService
                 ex);
         }
     }
-    
+
     public async Task<List<Order>> GetAllOrdersByStatusAsync(string status)
     {
         if (string.IsNullOrEmpty(status))
@@ -326,7 +320,7 @@ public class OrderService : IOrderService
                 $"Unerwarteter Fehler beim Abrufen von allen Bestellungen mit dem Status '{status}'.", ex);
         }
     }
-    
+
     public async Task<Order> GetOrderByIdAsync(int orderId)
     {
         if (orderId <= 0)
@@ -354,13 +348,13 @@ public class OrderService : IOrderService
 
         if (order == null)
         {
-            _logger.LogError($"{nameof(order)} mit ID {orderId} ist null.");
-            throw new OrderIsNullException($"Keine Bestellung mit ID {orderId} gefunden.");
+            _logger.LogError($"{nameof(order)} mit Id {orderId} ist null.");
+            throw new OrderIsNullException($"{nameof(order)} mit Id {orderId} ist null.");
         }
 
         return order;
     }
-    
+
     public async Task<List<Order>> SearchOrdersAsync(SearchTerm searchTerm, string status)
     {
         if (string.IsNullOrWhiteSpace(searchTerm.value))
@@ -404,13 +398,14 @@ public class OrderService : IOrderService
                 ex);
         }
     }
-    
-    public async Task<bool> ProcessOrderEntriesCancellationAsync(int orderId, string orderCode, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
+
+    public async Task<bool> ProcessOrderEntriesCancellationAsync(int orderId, string orderCode,
+        Dictionary<int, CancelOrderEntryModel> cancelledEntries)
     {
         ValidateInputs(orderId, orderCode, cancelledEntries);
 
         var order = await GetOrderByIdAsync(orderId);
-        await ValidateCancellationEntriesAsync(cancelledEntries); 
+        await ValidateCancellationEntriesAsync(cancelledEntries);
         ProcessCancellationsAsync(order, cancelledEntries);
 
         var cancellationRequests = cancelledEntries
@@ -432,7 +427,7 @@ public class OrderService : IOrderService
 
         return false;
     }
-    
+
     private void ValidateInputs(int orderId, string orderCode, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
     {
         if (orderId <= 0)
@@ -454,7 +449,7 @@ public class OrderService : IOrderService
             throw new ValidationException(new ValidationResult(failures).Errors);
         }
     }
-    
+
     private async Task ValidateCancellationEntriesAsync(Dictionary<int, CancelOrderEntryModel> cancelledEntries)
     {
         foreach (var cancelEntry in cancelledEntries.Where(e => e.Value.IsCancelled))
@@ -462,7 +457,7 @@ public class OrderService : IOrderService
             await _cancelOrderEntryValidator.ValidateAndThrowAsync(cancelEntry.Value);
         }
     }
-    
+
     private void ProcessCancellationsAsync(Order order, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
     {
         foreach (var cancelEntry in cancelledEntries.Where(e => e.Value.IsCancelled))
@@ -475,13 +470,14 @@ public class OrderService : IOrderService
             }
         }
     }
-    
-    private async Task<bool> SendCancellationRequestsAsync(string orderCode, List<OrderCancellationEntry> cancellationRequests)
+
+    private async Task<bool> SendCancellationRequestsAsync(string orderCode,
+        List<OrderCancellationEntry> cancellationRequests)
     {
         bool apiResult = await _oAuthClientService.CancelOrderEntriesAsync(orderCode, cancellationRequests);
         return apiResult;
     }
-    
+
     private async Task CancelOrderEntriesAsync(Order order, List<OrderCancellationEntry> cancellationEntries)
     {
         foreach (var cancellationEntry in cancellationEntries)
@@ -499,7 +495,7 @@ public class OrderService : IOrderService
             await _cancellationService.CancelWholeOrder(order);
         }
     }
-    
+
     public async Task<List<Order>> GetOrdersByIds(List<int> selectedOrders)
     {
         List<Order> orders = new List<Order>();
@@ -537,7 +533,7 @@ public class OrderService : IOrderService
 
         return orders;
     }
-    
+
     public async Task UpdateOrderExportedValue(List<Order> orders, bool exported)
     {
         foreach (var order in orders)
@@ -564,4 +560,3 @@ public class OrderService : IOrderService
         }
     }
 }
-
