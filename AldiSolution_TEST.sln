@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AldiOrderManagement", "Aldi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Tests", "Shared.Tests\Shared.Tests.csproj", "{932E1095-EB7D-4D74-B3D9-0A717A698504}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DpdPushTrackingApi.Tests", "DpdPushTrackingApi.Tests\DpdPushTrackingApi.Tests.csproj", "{A418B458-35FE-4625-9C2B-867529FC1CF1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{932E1095-EB7D-4D74-B3D9-0A717A698504}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{932E1095-EB7D-4D74-B3D9-0A717A698504}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{932E1095-EB7D-4D74-B3D9-0A717A698504}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A418B458-35FE-4625-9C2B-867529FC1CF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A418B458-35FE-4625-9C2B-867529FC1CF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A418B458-35FE-4625-9C2B-867529FC1CF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A418B458-35FE-4625-9C2B-867529FC1CF1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
