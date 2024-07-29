@@ -1,7 +1,7 @@
 using FluentValidation;
 using Shared.Contracts;
 
-namespace Shared.Validation;
+namespace Shared.Wrapper;
 
 public class ValidatorWrapper<T> : IValidatorWrapper<T>
 {
