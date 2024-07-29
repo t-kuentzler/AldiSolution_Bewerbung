@@ -669,37 +669,17 @@ public class OAuthClientService : IOAuthClientService
     public async Task<ReturnResponse> GetApiReturnsWithStatusCreatedAsync(string status)
     {
         _logger.LogInformation("Es wird versucht die Retouren abzurufen.");
-        using (var client = _clientFactory.CreateClient())
+
+        try
         {
-            var tokenResponse = await _accessTokenService.ValidateAndGetAccessToken();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
-
-            string returnUrl = $"{_settings.BaseUrl}aldivendorwebservices/2.0/DE/vendor/{_settings.VendorId}/returnrequests";
-            var response = await client.GetAsync(returnUrl);
-
-            if (response.IsSuccessStatusCode)
+            using (var client = _clientFactory.CreateClient())
             {
-                var jsonContent = await response.Content.ReadAsStringAsync();
-                ReturnResponse? returnResponse = JsonConvert.DeserializeObject<ReturnResponse>(jsonContent);
+                var tokenResponse = await _accessTokenService.ValidateAndGetAccessToken();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse);
 
-                if (returnResponse?.ReturnRequests.Count != null)
-                {
-                    _logger.LogInformation($"Es wurden {returnResponse?.ReturnRequests.Count} Retouren abgerufen.");
-                    return returnResponse;
-                }
-                else
-                {
-                    _logger.LogInformation("Es wurden 0 Retouren abgerufen.");
-                    return new ReturnResponse();
-                }
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                _logger.LogWarning("Der Token ist ungültig. Es wird versucht ihn zu aktualisieren.");
-                var newToken = await _accessTokenService.GetAndUpdateNewAccessToken();
-
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", newToken);
-                response = await client.GetAsync(returnUrl);
+                string returnUrl =
+                    $"{_settings.BaseUrl}aldivendorwebservices/2.0/DE/vendor/{_settings.VendorId}/returnrequests";
+                var response = await client.GetAsync(returnUrl);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -708,13 +688,44 @@ public class OAuthClientService : IOAuthClientService
 
                     if (returnResponse?.ReturnRequests.Count != null)
                     {
-                        _logger.LogInformation(
-                            $"Es wurden {returnResponse?.ReturnRequests.Count} Retouren abgerufen.");
+                        _logger.LogInformation($"Es wurden {returnResponse?.ReturnRequests.Count} Retouren abgerufen.");
                         return returnResponse;
                     }
                     else
                     {
                         _logger.LogInformation("Es wurden 0 Retouren abgerufen.");
+                        return new ReturnResponse();
+                    }
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogWarning("Der Token ist ungültig. Es wird versucht ihn zu aktualisieren.");
+                    var newToken = await _accessTokenService.GetAndUpdateNewAccessToken();
+
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", newToken);
+                    response = await client.GetAsync(returnUrl);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jsonContent = await response.Content.ReadAsStringAsync();
+                        ReturnResponse? returnResponse = JsonConvert.DeserializeObject<ReturnResponse>(jsonContent);
+
+                        if (returnResponse?.ReturnRequests.Count != null)
+                        {
+                            _logger.LogInformation(
+                                $"Es wurden {returnResponse?.ReturnRequests.Count} Retouren abgerufen.");
+                            return returnResponse;
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Es wurden 0 Retouren abgerufen.");
+                            return new ReturnResponse();
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogError(
+                            $"Could not obtain orders. Status Code: {response.StatusCode}, Response: {await response.Content.ReadAsStringAsync()}");
                         return new ReturnResponse();
                     }
                 }
@@ -725,14 +736,19 @@ public class OAuthClientService : IOAuthClientService
                     return new ReturnResponse();
                 }
             }
-            else
-            {
-                _logger.LogError(
-                    $"Could not obtain orders. Status Code: {response.StatusCode}, Response: {await response.Content.ReadAsStringAsync()}");
-                return new ReturnResponse();
-            }
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP-Anfragefehler bei der Kommunikation mit der API.");
+            throw new ApiException("HTTP-Anfragefehler bei der Kommunikation mit der API, Message: " + ex.Message, ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unerwarteter Fehler bei der Kommunikation mit der API.");
+            throw new ApiException("Unerwarteter Fehler bei der Kommunikation mit der API, Message: " + ex.Message, ex);
         }
     }
+
 
     public async Task<bool> ReturnInProgress(ReturnInProgressRequest returnInProgress, int retryCount = 0)
     {

@@ -13,6 +13,22 @@
       &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ThrowsHeaderValidationException_OnCsvHeaderValidationError&lt;/TestId&gt;
       &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests.GetConsignmentsFromCsvFiles_ThrowsTypeConverterException_OnCsvDataConversionError&lt;/TestId&gt;
       &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.CsvFileServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.DhlApiServiceTests.GetTrackingStatusFromApiAsync_ReturnsStatusCode_WhenApiCallIsSuccessful&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.DhlApiServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.DhlTrackingStatusServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.DpdTrackingDataServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.EmailServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::EmailServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.FileServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.OAuthClientServiceTests.GetApiTokenAsync_Success&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.OAuthClientServiceTests.GetApiTokenAsync_ApiFailure&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.OAuthClientServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.OrderProcessingServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Services.OrderServiceTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Validation.OrderValidatorTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Validation.OrderEntryValidatorTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Validation.DeliveryAddressValidatorTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::932E1095-EB7D-4D74-B3D9-0A717A698504::net8.0::Shared.Tests.Repositories.OrderRepositoryTests&lt;/TestId&gt;
     &lt;/TestAncestor&gt;
   &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
