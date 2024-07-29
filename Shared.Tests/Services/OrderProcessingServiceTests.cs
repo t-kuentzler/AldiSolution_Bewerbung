@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shared.Contracts;
 using Shared.Entities;
 using Shared.Models;
 using Shared.Services;
-using Xunit;
 
 namespace Shared.Tests.Services
 {
@@ -48,9 +44,9 @@ namespace Shared.Tests.Services
                 logger => logger.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Es sind keine offenen Bestellungen zum Abrufen verfügbar.")),
                     It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
 
@@ -89,9 +85,9 @@ namespace Shared.Tests.Services
                 logger => logger.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Ein Fehler ist beim Abrufen der offenen Bestellungen aufgetreten.")),
                     It.IsAny<Exception>(),
-                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
     }
