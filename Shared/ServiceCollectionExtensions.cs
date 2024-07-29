@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,8 @@ using System.Net.Mail;
 using AldiOrderManagement.Validation;
 using Microsoft.AspNetCore.Identity;
 using PdfSharp.Fonts;
+using Shared.Wrapper;
+using FileWrapper = Shared.Helpers.FileWrapper;
 
 namespace Shared
 {
@@ -119,8 +122,9 @@ namespace Shared
             services.AddScoped<IOAuthClientService>(provider =>
                 provider.GetRequiredService<IOAuthClientServiceFactory>().Create());
 
-            // Validator Wrapper
+            //Wrapper
             services.AddTransient(typeof(IValidatorWrapper<>), typeof(ValidatorWrapper<>));
+            services.AddTransient(typeof(ISmtpClientWrapper), typeof(SmtpClientWrapper));
 
             // Validators
             services.AddTransient<IValidator<AccessToken>, AccessTokenValidator>();
@@ -159,6 +163,9 @@ namespace Shared
             services.AddSingleton<IFontResolver>(provider => provider.GetRequiredService<CustomFontResolver>());
 
             services.AddSingleton<SmtpClient>();
+            
+            services.AddSingleton<IFileSystem, FileSystem>();
+
         }
     }
 }
