@@ -26,6 +26,15 @@
       <_ContentIncludedByDefault Remove="Views\Shared\_Layout.cshtml" />
       <_ContentIncludedByDefault Remove="Views\Shared\_LoginPartial.cshtml" />
       <_ContentIncludedByDefault Remove="Views\Shared\_ValidationScriptsPartial.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Consignment\ConsignmentDetails.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Consignment\ShippedConsignments.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Return\CompletedReturnDetails.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Return\CompletedReturns.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Return\ReceivingReturns.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Return\RetrievedReturns.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Return\ReturnDetails.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Return\ReturnDetailsWithCompletion.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Statistic\Index.cshtml" />
     </ItemGroup>
 
     <ItemGroup>

@@ -211,8 +211,8 @@ namespace AldiOrderManagement.Controllers
                 var content = _fileService.CreateExcelFileInProgressOrders(orders);
                 await _orderService.UpdateOrderExportedValue(orders, true);
 
-                // Datei auf dem Server speichern und Pfad oder Bezeichner in TempData speichern
-                var fileId = _fileService.SaveFileOnServer(content); // Implementieren Sie diese Methode entsprechend
+                // Datei auf dem Server
+                var fileId = _fileService.SaveFileOnServer(content);
 
                 return RedirectToAction("DownloadConfirmation", new { fileId = fileId });
             }

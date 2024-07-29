@@ -1,11 +1,8 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Shared;
 using Shared.Logger;
 using System.Threading.RateLimiting;
 using DpdPushTrackingApi.Models;
-using Serilog;
 
 namespace DpdPushTrackingApi;
 
@@ -131,11 +128,4 @@ public class Program
 
         return sharedConfigPath;
     }
-}
-
-public class RateLimitingOptions
-{
-    public int TokenLimit { get; set; }
-    public int TokensPerPeriod { get; set; }
-    public int ReplenishmentPeriodInSeconds { get; set; }
 }

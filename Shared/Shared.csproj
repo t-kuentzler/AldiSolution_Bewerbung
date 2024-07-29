@@ -49,13 +49,4 @@
     <None Remove="Fonts\arialbd.ttf" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Fonts\arial.ttf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Fonts\arialbd.ttf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-
 </Project>

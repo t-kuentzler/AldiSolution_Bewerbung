@@ -29,20 +29,11 @@
 
     <ItemGroup>
       <None Remove="Images\aldi.png" />
-      <Content Include="Images\aldi.png">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="Fonts\arial.ttf" />
-      <EmbeddedResource Include="Fonts\arial.ttf">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </EmbeddedResource>
       <None Remove="Fonts\arialbd.ttf" />
-      <EmbeddedResource Include="Fonts\arialbd.ttf">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </EmbeddedResource>
     </ItemGroup>
 
 </Project>
