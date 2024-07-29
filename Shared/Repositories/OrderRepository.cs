@@ -14,7 +14,7 @@ public class OrderRepository : IOrderRepository
     {
         _applicationDbContext = applicationDbContext;
     }
-    
+
     public async Task CreateOrderAsync(Order order)
     {
         try
@@ -27,7 +27,7 @@ public class OrderRepository : IOrderRepository
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderId: '{order.Id}'.", ex);
         }
     }
-    
+
     public async Task<bool> UpdateOrderStatusAsync(string orderCode, string newStatus)
     {
         try
@@ -49,7 +49,7 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
-    
+
     public async Task<Order?> GetOrderByOrderCodeAsync(string orderCode)
     {
         try
@@ -61,7 +61,7 @@ public class OrderRepository : IOrderRepository
                 .ThenInclude(ce => ce.ConsignmentEntries)
                 .Where(o => o.Code == orderCode)
                 .FirstOrDefaultAsync();
-                
+
             return order;
         }
         catch (Exception ex)
@@ -70,7 +70,7 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
-    
+
     public async Task<string?> GetOrderStatusByOrderCodeAsync(string orderCode)
     {
         try
@@ -85,13 +85,17 @@ public class OrderRepository : IOrderRepository
 
             return order.Status;
         }
+        catch (OrderNotFoundException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderCode: '{orderCode}'.",
                 ex);
         }
     }
-    
+
     public async Task UpdateOrderStatusByOrderCodeAsync(string orderCode, string newStatus)
     {
         try
@@ -110,7 +114,7 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
-    
+
     public async Task<List<Order>> GetOrdersWithStatusAsync(string status)
     {
         try
@@ -127,7 +131,7 @@ public class OrderRepository : IOrderRepository
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. Status: '{status}'.", ex);
         }
     }
-    
+
     public async Task UpdateOrderStatusByIdAsync(int orderId, string status)
     {
         try
@@ -147,7 +151,7 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
-    
+
     public async Task<Order?> GetOrderByIdAsync(int orderId)
     {
         try
@@ -166,7 +170,7 @@ public class OrderRepository : IOrderRepository
             throw new RepositoryException($"Ein unerwarteter Fehler ist aufgetreten. OrderId: '{orderId}'", ex);
         }
     }
-    
+
     public async Task<List<Order>> SearchOrdersAsync(SearchTerm searchTerm, string status)
     {
         try
@@ -174,7 +178,8 @@ public class OrderRepository : IOrderRepository
             return await _applicationDbContext.Order
                 .Include(o => o.Entries)
                 .ThenInclude(entry => entry.DeliveryAddress)
-                .Where(o => o.Status == status && (o.Code.Contains(searchTerm.value) || o.Consignments.Any(c => c.TrackingId == searchTerm.value)))
+                .Where(o => o.Status == status && (o.Code.Contains(searchTerm.value) ||
+                                                   o.Consignments.Any(c => c.TrackingId == searchTerm.value)))
                 .ToListAsync();
         }
         catch (Exception ex)
@@ -184,7 +189,7 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
-    
+
     public async Task UpdateOrderEntryAsync(OrderEntry orderEntry)
     {
         try
@@ -198,7 +203,7 @@ public class OrderRepository : IOrderRepository
                 ex);
         }
     }
-    
+
     public async Task UpdateOrderAsync(Order order)
     {
         try
