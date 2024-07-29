@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -15,13 +16,15 @@ public class CsvFileService : ICsvFileService
     private readonly IConfiguration _configuration;
     private readonly ILogger<CsvFileService> _logger;
     private readonly IOrderService _orderService;
+    private readonly IFileSystem _fileSystem;
 
     public CsvFileService(IConfiguration configuration, ILogger<CsvFileService> logger,
-        IOrderService orderService)
+        IOrderService orderService, IFileSystem fileSystem)
     {
         _configuration = configuration;
         _logger = logger;
         _orderService = orderService;
+        _fileSystem = fileSystem;
     }
 
     public List<ConsignmentFromCsv> GetConsignmentsFromCsvFiles()
@@ -224,21 +227,21 @@ public class CsvFileService : ICsvFileService
         try
         {
             string sourceFolderPath = GetFolderPath();
-            string archiveFolderPath = Path.Combine(sourceFolderPath, "Archiv");
+            string archiveFolderPath = _fileSystem.Path.Combine(sourceFolderPath, "Archiv");
 
-            if (!Directory.Exists(archiveFolderPath))
+            if (!_fileSystem.Directory.Exists(archiveFolderPath))
             {
-                Directory.CreateDirectory(archiveFolderPath);
+                _fileSystem.Directory.CreateDirectory(archiveFolderPath);
             }
 
-            var csvFiles = Directory.GetFiles(sourceFolderPath, "*.csv");
+            var csvFiles = _fileSystem.Directory.GetFiles(sourceFolderPath, "*.csv");
 
             foreach (var filePath in csvFiles)
             {
-                var fileName = Path.GetFileName(filePath);
-                var destinationFilePath = Path.Combine(archiveFolderPath, fileName);
+                var fileName = _fileSystem.Path.GetFileName(filePath);
+                var destinationFilePath = _fileSystem.Path.Combine(archiveFolderPath, fileName);
 
-                File.Move(filePath, destinationFilePath, true);
+                _fileSystem.File.Move(filePath, destinationFilePath);
                 _logger.LogInformation($"Datei '{fileName}' wurde erfolgreich ins Archiv verschoben.");
             }
         }
@@ -247,4 +250,5 @@ public class CsvFileService : ICsvFileService
             _logger.LogError($"Fehler beim Verschieben der CSV-Dateien ins Archiv: {ex.Message}");
         }
     }
+    
 }
