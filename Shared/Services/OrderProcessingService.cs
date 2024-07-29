@@ -22,6 +22,7 @@ namespace Shared.Services
             _logger = logger;
         }
 
+        //Verarbeitung von neuen Bestellungen
         public async Task ProcessOpenOrdersAsync()
         {
             try
