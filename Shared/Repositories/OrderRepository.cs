@@ -122,7 +122,7 @@ public class OrderRepository : IOrderRepository
             return await _applicationDbContext.Order
                 .Include(o => o.Entries)
                 .ThenInclude(entry => entry.DeliveryAddress)
-                .Include(o => o.Consignments) // Consignments mit einschließen
+                .Include(o => o.Consignments)
                 .Where(o => o.Status == status)
                 .ToListAsync();
         }

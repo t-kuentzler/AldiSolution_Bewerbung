@@ -41,12 +41,16 @@ public class OrderService : IOrderService
         _quantityCheckService = quantityCheckService;
     }
 
+    //Verarbeiten einer neuen Bestellung
     public async Task ProcessSingleOrderAsync(Order order)
     {
         try
         {
+            //In Db erstellen
             await AddOrderAsync(order);
+            //Status in Db aktualisieren
             await UpdateOrderStatusInDatabaseAsync(order, SharedStatus.InProgress);
+            //Api aufruf
             await _oAuthClientService.UpdateApiOrderStatusInProgressAsync(order);
         }
         catch (ValidationException ex)
@@ -406,8 +410,9 @@ public class OrderService : IOrderService
 
         var order = await GetOrderByIdAsync(orderId);
         await ValidateCancellationEntriesAsync(cancelledEntries);
-        ProcessCancellationsAsync(order, cancelledEntries);
+        CheckCancellationQuantitiesAsync(order, cancelledEntries);
 
+        // Erstellen der Stornierungsanfrage für die API
         var cancellationRequests = cancelledEntries
             .Where(e => e.Value.IsCancelled)
             .Select(e => new OrderCancellationEntry
@@ -458,7 +463,8 @@ public class OrderService : IOrderService
         }
     }
 
-    private void ProcessCancellationsAsync(Order order, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
+    //Validierung, dass nicht mehr storniert wird als verfügbar
+    private void CheckCancellationQuantitiesAsync(Order order, Dictionary<int, CancelOrderEntryModel> cancelledEntries)
     {
         foreach (var cancelEntry in cancelledEntries.Where(e => e.Value.IsCancelled))
         {
@@ -490,6 +496,7 @@ public class OrderService : IOrderService
             }
         }
 
+        //Order Status aktualisieren, wenn alle Teile storniert wurden
         if (_cancellationService.AreAllOrderEntriesCancelled(order))
         {
             await _cancellationService.CancelWholeOrder(order);
@@ -534,6 +541,7 @@ public class OrderService : IOrderService
         return orders;
     }
 
+    //XLS Export
     public async Task UpdateOrderExportedValue(List<Order> orders, bool exported)
     {
         foreach (var order in orders)
